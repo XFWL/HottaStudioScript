@@ -2,7 +2,7 @@
 
 # **你得有 娜娜莉 和 白藏 这个脚本才有意义！！！**
 
-![](D:\project\AIproject\异环店长特供\tip\tip3.png)
+![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/tip/tip3.png)
 
 ## 功能说明
 
@@ -23,7 +23,7 @@
 
 ```注意:你的exe文件同目录下得有存放1080p识别图片的 1080 文件夹，和 2.5k识别图片的 2k 文件夹，如下图```
 
-![](D:\project\AIproject\异环店长特供\tip\tip0.png)
+![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/tip/tip0.png)
 
 
 
@@ -58,11 +58,11 @@
 
    1. 确保默认选择 `店长特供`
 
-      ![](D:\project\AIproject\异环店长特供\tip\tip1.png)
+      ![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/tip/tip1.png)
 
    2. 确保默认选中 2-8 关卡，没选中可以先进去玩一局
 
-      ![](D:\project\AIproject\异环店长特供\tip\tip2.png)
+      ![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/tip/tip2.png)
 
 3. **运行工具**：
 
