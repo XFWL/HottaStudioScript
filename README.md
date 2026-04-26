@@ -27,7 +27,7 @@
 
 
 
-1. 直接运行 `dist/image_recognition_automation.exe` 文件
+1. 直接以管理原运行 `dist/image_recognition_automation.exe` 文件
 
 ### 方法2：从源代码运行
 
