@@ -5,15 +5,15 @@ import os
 block_cipher = None
 
 datas = [
-    ('images', 'images'),
+    ("images", "images"),
 ]
 
 a = Analysis(
-    ['main.py'],
+    ["main.py"],
     pathex=[],
     binaries=[],
     datas=datas,
-    hiddenimports=['PIL', 'cv2', 'numpy', 'keyboard', 'pygetwindow', 'pyautogui'],
+    hiddenimports=["PIL", "cv2", "numpy", "keyboard", "pygetwindow", "pyautogui"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -31,7 +31,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='异环小工具',
+    name="异环小工具",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -52,5 +52,5 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='异环小工具',
+    name="异环小工具",
 )

@@ -11,6 +11,7 @@ class ShopModule:
     def __init__(self, main_app, notebook):
         self.main_app = main_app
         self.shop_log_text = None
+        self.base_resolution = (1920, 1080)  # 模板的基准分辨率
         self.create_ui(notebook)
     
     def create_ui(self, notebook):
@@ -19,13 +20,6 @@ class ShopModule:
         
         content_frame = ttk.Frame(self.shop_tab)
         content_frame.pack(anchor=tk.NW)
-        
-        ttk.Label(content_frame, text="分辨率:", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
-        self.resolution_var = tk.StringVar(value="1080")
-        resolution_frame = ttk.Frame(content_frame)
-        resolution_frame.pack(anchor=tk.NW, pady=3, padx=20)
-        ttk.Radiobutton(resolution_frame, text="1929x1080（窗口）", value="1080", variable=self.resolution_var).pack(side=tk.LEFT, padx=10)
-        ttk.Radiobutton(resolution_frame, text="2560x1600（全屏）", value="2k", variable=self.resolution_var).pack(side=tk.LEFT, padx=10)
         
         ttk.Label(content_frame, text="第一步操作: 识别 店长特供 图片，执行F键操作", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
         step1_frame = ttk.Frame(content_frame)
@@ -198,18 +192,13 @@ class ShopModule:
         
         self.step4(window)
     
-    def find_image_on_screen(self, window, image_path, threshold=0.8):
+    def find_image_on_screen(self, window, image_path, threshold=0.7):
         screenshot = self.main_app.capture_window(window)
         if screenshot is None:
             return None
         
-        resolution = self.resolution_var.get()
-        if resolution == "1080":
-            folder = "1080"
-        else:
-            folder = "2k"
-        
-        template_path = os.path.join("images", folder, image_path)
+        # 统一从 templates 文件夹读取模板
+        template_path = os.path.join("images", "templates", image_path)
         if not os.path.exists(template_path):
             self.shop_log(f"模板图片不存在: {template_path}")
             return None
@@ -219,6 +208,24 @@ class ShopModule:
             self.shop_log(f"无法读取模板图片: {template_path}")
             return None
         
+        original_w, original_h = template.shape[1], template.shape[0]
+        
+        # 获取当前窗口分辨率
+        current_width, current_height = screenshot.shape[1], screenshot.shape[0]
+        base_width, base_height = self.base_resolution
+        
+        # 计算缩放比例
+        scale_x = current_width / base_width
+        scale_y = current_height / base_height
+        
+        # 缩放模板（按比例缩放）
+        if scale_x != 1.0 or scale_y != 1.0:
+            new_w = int(original_w * scale_x)
+            new_h = int(original_h * scale_y)
+            if new_w > 0 and new_h > 0:
+                template = cv2.resize(template, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        
+        # 模板匹配
         result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
         
