@@ -1,7 +1,5 @@
 # 异环小工具
 
-# **这个脚本需要有 娜娜莉 和 白藏 ！！！**
-
 ![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/tip/tip3.png)
 
 ## 功能说明
@@ -32,6 +30,8 @@
    ```
 
 ## 店长特供
+
+### **店长特供 需要有 娜娜莉 和 白藏 ！！！**
 
 ### 功能介绍
 
