@@ -1,0 +1,649 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import cv2
+import numpy as np
+import os
+import time
+import keyboard
+import pyautogui
+import threading
+
+class FishingModule:
+    def __init__(self, main_app, notebook):
+        self.main_app = main_app
+        self.fishing_log_text = None
+        self.create_ui(notebook)
+    
+    def create_ui(self, notebook):
+        self.fishing_tab = ttk.Frame(notebook)
+        notebook.add(self.fishing_tab, text="钓鱼")
+
+        fishing_content_frame = ttk.Frame(self.fishing_tab)
+        fishing_content_frame.pack(anchor=tk.NW, padx=20, pady=10)
+
+        ttk.Label(fishing_content_frame, text="【鱼】HSV 参数设置:", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
+
+        fish_low_frame = ttk.Frame(fishing_content_frame)
+        fish_low_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(fish_low_frame, text="低阈值 (H, S, V):").pack(side=tk.LEFT, padx=5)
+        self.fish_h_low = tk.IntVar(value=83)
+        self.fish_s_low = tk.IntVar(value=195)
+        self.fish_v_low = tk.IntVar(value=184)
+        ttk.Entry(fish_low_frame, textvariable=self.fish_h_low, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(fish_low_frame, textvariable=self.fish_s_low, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(fish_low_frame, textvariable=self.fish_v_low, width=5).pack(side=tk.LEFT, padx=2)
+
+        fish_high_frame = ttk.Frame(fishing_content_frame)
+        fish_high_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(fish_high_frame, text="高阈值 (H, S, V):").pack(side=tk.LEFT, padx=5)
+        self.fish_h_high = tk.IntVar(value=85)
+        self.fish_s_high = tk.IntVar(value=206)
+        self.fish_v_high = tk.IntVar(value=226)
+        ttk.Entry(fish_high_frame, textvariable=self.fish_h_high, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(fish_high_frame, textvariable=self.fish_s_high, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(fish_high_frame, textvariable=self.fish_v_high, width=5).pack(side=tk.LEFT, padx=2)
+
+        ttk.Label(fishing_content_frame, text="【鱼竿】HSV 参数设置:", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
+
+        rod_low_frame = ttk.Frame(fishing_content_frame)
+        rod_low_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(rod_low_frame, text="低阈值 (H, S, V):").pack(side=tk.LEFT, padx=5)
+        self.rod_h_low = tk.IntVar(value=26)
+        self.rod_s_low = tk.IntVar(value=73)
+        self.rod_v_low = tk.IntVar(value=253)
+        ttk.Entry(rod_low_frame, textvariable=self.rod_h_low, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(rod_low_frame, textvariable=self.rod_s_low, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(rod_low_frame, textvariable=self.rod_v_low, width=5).pack(side=tk.LEFT, padx=2)
+
+        rod_high_frame = ttk.Frame(fishing_content_frame)
+        rod_high_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(rod_high_frame, text="高阈值 (H, S, V):").pack(side=tk.LEFT, padx=5)
+        self.rod_h_high = tk.IntVar(value=29)
+        self.rod_s_high = tk.IntVar(value=110)
+        self.rod_v_high = tk.IntVar(value=254)
+        ttk.Entry(rod_high_frame, textvariable=self.rod_h_high, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(rod_high_frame, textvariable=self.rod_s_high, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(rod_high_frame, textvariable=self.rod_v_high, width=5).pack(side=tk.LEFT, padx=2)
+
+        ttk.Label(fishing_content_frame, text="识别匹配设置以及测试功能按钮", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
+
+        self.key_press_time_per_px = tk.IntVar(value=4)
+        self.phase_drop_line_enabled = tk.BooleanVar(value=True)
+        self.phase_fishing_enabled = tk.BooleanVar(value=True)
+        self.phase_cleanup_enabled = tk.BooleanVar(value=True)
+        self.auto_fishing_loop = tk.BooleanVar(value=False)
+        self.auto_fishing_loop_count = tk.IntVar(value=0)
+        self.phase_drop_line_delay = tk.DoubleVar(value=0)
+        self.phase_drop_line_interval = tk.IntVar(value=1)
+        self.phase_drop_line_timeout = tk.IntVar(value=10)
+        self.phase_fishing_delay = tk.DoubleVar(value=0.25)
+        self.phase_cleanup_delay = tk.DoubleVar(value=1)
+
+        detect_area_frame = ttk.Frame(fishing_content_frame)
+        detect_area_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(detect_area_frame, text="检测区域高度（从窗口顶部开始）:").pack(side=tk.LEFT, padx=5)
+        self.detect_area_percent = tk.IntVar(value=15)
+        ttk.Entry(detect_area_frame, textvariable=self.detect_area_percent, width=5).pack(side=tk.LEFT, padx=5)
+        ttk.Label(detect_area_frame, text="%").pack(side=tk.LEFT, padx=2)
+        ttk.Button(detect_area_frame, text="测试获取当前指定窗口的HSV匹配区域参考图片", command=self.test_capture_region).pack(side=tk.LEFT, padx=10)
+
+        test_fish_rod_frame = ttk.Frame(fishing_content_frame)
+        test_fish_rod_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Button(test_fish_rod_frame, text="测试获取鱼和鱼竿的HSV匹配图片", command=self.test_fish_rod_capture).pack(anchor=tk.NW)
+        ttk.Button(test_fish_rod_frame, text="获取指定图片的HSV", command=self.get_image_hsv).pack(anchor=tk.NW, pady=2)
+
+        ttk.Label(fishing_content_frame, text="钓鱼阶段设置", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
+
+        drop_line_frame = ttk.Frame(fishing_content_frame)
+        drop_line_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(drop_line_frame, text="下杆阶段:").pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(drop_line_frame, text="是否在循环中启用", variable=self.phase_drop_line_enabled).pack(side=tk.LEFT, padx=5)
+        ttk.Label(drop_line_frame, text="启动延迟").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(drop_line_frame, textvariable=self.phase_drop_line_delay, width=6).pack(side=tk.LEFT, padx=2)
+        ttk.Label(drop_line_frame, text="秒").pack(side=tk.LEFT, padx=2)
+        ttk.Label(drop_line_frame, text="检测间隔").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(drop_line_frame, textvariable=self.phase_drop_line_interval, width=4).pack(side=tk.LEFT, padx=2)
+        ttk.Label(drop_line_frame, text="秒").pack(side=tk.LEFT, padx=2)
+        ttk.Label(drop_line_frame, text="超时时间").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(drop_line_frame, textvariable=self.phase_drop_line_timeout, width=4).pack(side=tk.LEFT, padx=2)
+        ttk.Label(drop_line_frame, text="秒").pack(side=tk.LEFT, padx=2)
+        ttk.Button(drop_line_frame, text="单独执行", command=self.execute_drop_line_alone).pack(side=tk.LEFT, padx=10)
+
+        fishing_phase_frame = ttk.Frame(fishing_content_frame)
+        fishing_phase_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(fishing_phase_frame, text="钓鱼阶段:").pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(fishing_phase_frame, text="是否在循环中启用", variable=self.phase_fishing_enabled).pack(side=tk.LEFT, padx=5)
+        ttk.Label(fishing_phase_frame, text="启动延迟").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(fishing_phase_frame, textvariable=self.phase_fishing_delay, width=6).pack(side=tk.LEFT, padx=2)
+        ttk.Label(fishing_phase_frame, text="秒").pack(side=tk.LEFT, padx=2)
+        ttk.Label(fishing_phase_frame, text="按键时间设置每1px增加").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(fishing_phase_frame, textvariable=self.key_press_time_per_px, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Label(fishing_phase_frame, text="ms").pack(side=tk.LEFT, padx=2)
+        ttk.Button(fishing_phase_frame, text="单独执行", command=self.execute_fishing_alone).pack(side=tk.LEFT, padx=10)
+
+        timeout_info_frame = ttk.Frame(fishing_content_frame)
+        timeout_info_frame.pack(anchor=tk.NW, pady=3, padx=38)
+        ttk.Label(timeout_info_frame, text="超时设置(循环时):", foreground="#888888").pack(side=tk.LEFT, padx=5)
+        ttk.Label(timeout_info_frame, text="超时时间", foreground="#888888").pack(side=tk.LEFT, padx=5)
+        ttk.Label(timeout_info_frame, text="11", width=4, foreground="#888888", font=('Arial', 9)).pack(side=tk.LEFT, padx=2)
+        ttk.Label(timeout_info_frame, text="秒", foreground="#888888").pack(side=tk.LEFT, padx=2)
+        ttk.Label(timeout_info_frame, text="超时后收尾阶段设置启动延迟为", foreground="#888888").pack(side=tk.LEFT, padx=5)
+        ttk.Label(timeout_info_frame, text="5", width=4, foreground="#888888", font=('Arial', 9)).pack(side=tk.LEFT, padx=2)
+        ttk.Label(timeout_info_frame, text="秒", foreground="#888888").pack(side=tk.LEFT, padx=2)
+
+        cleanup_frame = ttk.Frame(fishing_content_frame)
+        cleanup_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(cleanup_frame, text="收尾阶段:").pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(cleanup_frame, text="是否在循环中启用", variable=self.phase_cleanup_enabled).pack(side=tk.LEFT, padx=5)
+        ttk.Label(cleanup_frame, text="启动延迟").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(cleanup_frame, textvariable=self.phase_cleanup_delay, width=6).pack(side=tk.LEFT, padx=2)
+        ttk.Label(cleanup_frame, text="秒").pack(side=tk.LEFT, padx=2)
+        ttk.Button(cleanup_frame, text="单独执行", command=self.execute_cleanup_alone).pack(side=tk.LEFT, padx=10)
+
+        auto_loop_frame = ttk.Frame(fishing_content_frame)
+        auto_loop_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Checkbutton(auto_loop_frame, text="自动循环钓鱼", variable=self.auto_fishing_loop).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(auto_loop_frame, textvariable=self.auto_fishing_loop_count, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Label(auto_loop_frame, text="循环次数(0为无限，不勾选默认循环1遍)").pack(side=tk.LEFT, padx=5)
+
+        button_frame = ttk.Frame(self.fishing_tab)
+        button_frame.pack(pady=5)
+        ttk.Button(button_frame, text="开始执行钓鱼", command=self.start_fishing).pack(side=tk.LEFT, padx=10)
+        ttk.Label(button_frame, text="取消热键: F12", font=("Arial", 10, "italic"), foreground="#0066cc").pack(side=tk.LEFT, padx=10)
+
+        log_frame = ttk.Frame(self.fishing_tab)
+        log_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+
+        ttk.Label(log_frame, text="日志输出:", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
+
+        self.fishing_log_text = tk.Text(log_frame, height=8, width=80, font=("SimHei", 9))
+        self.fishing_log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=3)
+        self.fishing_log_text.config(state=tk.DISABLED)
+    
+    def fishing_log(self, message):
+        if self.fishing_log_text:
+            self.fishing_log_text.config(state=tk.NORMAL)
+            timestamp = time.strftime("%H:%M:%S")
+            self.fishing_log_text.insert(tk.END, f"[{timestamp}] {message}\n")
+            self.fishing_log_text.see(tk.END)
+            self.fishing_log_text.config(state=tk.DISABLED)
+    
+    def detect_hsv_and_capture(self, screenshot, h_low, s_low, v_low, h_high, s_high, v_high, radius, name, detect_percent=10, generate_image=True):
+        hsv_image = cv2.cvtColor(screenshot, cv2.COLOR_BGR2HSV)
+        
+        lower_hsv = np.array([h_low, s_low, v_low])
+        upper_hsv = np.array([h_high, s_high, v_high])
+        
+        mask = cv2.inRange(hsv_image, lower_hsv, upper_hsv)
+        
+        coords = np.column_stack(np.where(mask > 0))
+        
+        img_height = hsv_image.shape[0]
+        top_region_threshold = int(img_height * detect_percent / 100)
+        
+        coords_in_top_region = coords[coords[:, 0] < top_region_threshold]
+        
+        if len(coords_in_top_region) == 0:
+            return False, None, None, None
+        
+        y_coords = coords_in_top_region[:, 0]
+        x_coords = coords_in_top_region[:, 1]
+        
+        min_x, max_x = int(np.min(x_coords)), int(np.max(x_coords))
+        min_y, max_y = int(np.min(y_coords)), int(np.max(y_coords))
+        
+        center_x = (min_x + max_x) // 2
+        center_y = (min_y + max_y) // 2
+        
+        if not generate_image:
+            return True, None, (center_x, center_y), (min_x, min_y, max_x, max_y)
+        
+        img_height, img_width = screenshot.shape[:2]
+        
+        x1 = max(0, min_x)
+        y1 = max(0, min_y)
+        x2 = min(img_width, max_x + 1)
+        y2 = min(img_height, max_y + 1)
+        
+        cropped_image = screenshot[y1:y2, x1:x2]
+        
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        output_dir = "images/fishing_screenshots"
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = f"{output_dir}/{name}_{timestamp}.png"
+        
+        cv2.imwrite(output_path, cropped_image)
+        
+        return True, output_path, (center_x, center_y), (min_x, min_y, max_x, max_y)
+    
+    def phase_drop_line(self, window, fish_hsv, detect_percent, delay, interval, timeout):
+        self.fishing_log("=== 开始下杆阶段 ===")
+        
+        if delay > 0:
+            self.fishing_log(f"等待延迟 {delay}秒...")
+            time.sleep(delay)
+        
+        start_time = time.time()
+        
+        while not self.main_app.cancelled:
+            elapsed_time = time.time() - start_time
+            if elapsed_time > timeout:
+                self.fishing_log(f"下杆阶段超时({timeout}秒)，退出")
+                return "timeout"
+            
+            window.activate()
+            time.sleep(0.02)
+            
+            screenshot = self.main_app.capture_window(window)
+            if screenshot is None:
+                time.sleep(interval)
+                continue
+            
+            success, _, _, _ = self.detect_hsv_and_capture(screenshot, fish_hsv[0], fish_hsv[1], fish_hsv[2], fish_hsv[3], fish_hsv[4], fish_hsv[5], 50, "fish", detect_percent, False)
+            
+            if success:
+                self.fishing_log("检测到鱼，下杆成功")
+                return "success"
+            
+            pyautogui.press('f')
+            self.fishing_log(f"按F键下杆，已尝试 {int(elapsed_time)}秒")
+            time.sleep(interval)
+        
+        return "cancelled"
+    
+    def phase_fishing(self, window, fish_hsv, rod_hsv, detect_percent, key_press_time_per_px, delay):
+        self.fishing_log("=== 开始钓鱼阶段 ===")
+        self.fishing_log(f"启动延迟: {delay}秒")
+        
+        if delay > 0:
+            self.fishing_log(f"等待延迟 {delay}秒...")
+            time.sleep(delay)
+        
+        start_time = time.time()
+        timeout_triggered = False
+        
+        while not self.main_app.cancelled:
+            elapsed_time = time.time() - start_time
+            if elapsed_time > 10 and not timeout_triggered:
+                timeout_triggered = True
+                self.fishing_log(f"钓鱼阶段已持续{elapsed_time:.1f}秒，将触发收尾延迟")
+            
+            try:
+                window.activate()
+                time.sleep(0.02)
+                screenshot = self.main_app.capture_window(window)
+                
+                if screenshot is None:
+                    continue
+                
+                fish_success, fish_path, fish_center, fish_bounds = self.detect_hsv_and_capture(
+                    screenshot, fish_hsv[0], fish_hsv[1], fish_hsv[2],
+                    fish_hsv[3], fish_hsv[4], fish_hsv[5],
+                    50, "fish", detect_percent, False)
+                
+                rod_success, rod_path, rod_center, rod_bounds = self.detect_hsv_and_capture(
+                    screenshot, rod_hsv[0], rod_hsv[1], rod_hsv[2],
+                    rod_hsv[3], rod_hsv[4], rod_hsv[5],
+                    50, "rod", detect_percent, False)
+                
+                if not fish_success or not rod_success:
+                    if not fish_success and not rod_success:
+                        self.fishing_log("鱼和鱼竿均未找到，钓鱼完成")
+                    elif not fish_success:
+                        self.fishing_log("鱼未找到，钓鱼完成")
+                    else:
+                        self.fishing_log("鱼竿未找到，钓鱼完成")
+                    return ("timeout" if timeout_triggered else "finished", timeout_triggered)
+                
+                if fish_center and rod_center and fish_bounds:
+                    fish_min_x, fish_min_y, fish_max_x, fish_max_y = fish_bounds
+                    rod_x = rod_center[0]
+                    fish_center_x = (fish_min_x + fish_max_x) // 2
+                    fish_width = fish_max_x - fish_min_x
+                    offset = rod_x - fish_center_x
+                    
+                    self.fishing_log(f"鱼:[{fish_min_x}-{fish_max_x}] (宽:{fish_width}px), 中心:{fish_center_x} | 鱼竿:{rod_x} | 偏移:{offset}")
+                    
+                    threshold = max(8, fish_width // 6)
+                    
+                    if abs(offset) > threshold:
+                        distance = abs(offset)
+                        press_time = distance * (key_press_time_per_px / 1000.0)
+                        press_time = max(press_time, 0.04)
+                        # press_time = min(press_time, 0.25)
+                        
+                        if offset < 0:
+                            keyboard.press('d')
+                            time.sleep(press_time)
+                            keyboard.release('d')
+                            self.fishing_log(f"按D向右 (鱼中心左{abs(offset)}px, 阈值:{threshold}px, 按{press_time:.3f}s)")
+                        else:
+                            keyboard.press('a')
+                            time.sleep(press_time)
+                            keyboard.release('a')
+                            self.fishing_log(f"按A向左 (鱼中心右{abs(offset)}px, 阈值:{threshold}px, 按{press_time:.3f}s)")
+                        
+                        time.sleep(0.08)
+                    else:
+                        time.sleep(0.04)
+                        
+            except Exception as e:
+                self.fishing_log(f"钓鱼阶段错误: {str(e)}")
+                time.sleep(0.1)
+        
+        return ("cancelled", timeout_triggered)
+    
+    def phase_cleanup(self, window, fish_hsv, detect_percent, delay, timeout_triggered=False):
+        self.fishing_log("=== 开始收尾阶段 ===")
+        
+        if timeout_triggered:
+            self.fishing_log("钓鱼超时，延迟5秒执行收尾")
+            time.sleep(5)
+        elif delay > 0:
+            self.fishing_log(f"启动延迟 {delay} 秒")
+            time.sleep(delay)
+        
+        max_retry = 3
+        retry_count = 0
+        
+        while retry_count < max_retry and not self.main_app.cancelled:
+            try:
+                window.activate()
+                time.sleep(0.02)
+                screenshot = self.main_app.capture_window(window)
+                
+                if screenshot is None:
+                    retry_count += 1
+                    time.sleep(1)
+                    continue
+                
+                success, _, fish_center, _ = self.detect_hsv_and_capture(screenshot, fish_hsv[0], fish_hsv[1], fish_hsv[2], fish_hsv[3], fish_hsv[4], fish_hsv[5], 50, "fish", detect_percent, False)
+                
+                if fish_center:
+                    self.fishing_log(f"检测到鱼，重试 {retry_count + 1}/{max_retry}")
+                    retry_count += 1
+                    time.sleep(1)
+                    continue
+                
+                self.fishing_log("未检测到鱼，点击窗口中心")
+                window_left, window_top = window.left, window.top
+                window_width, window_height = window.width, window.height
+                pyautogui.click(window_left + window_width // 2, window_top + window_height // 2)
+                time.sleep(0.5)
+                break
+                
+            except Exception as e:
+                self.fishing_log(f"收尾阶段错误: {str(e)}")
+                retry_count += 1
+                time.sleep(1)
+    
+    def start_fishing(self):
+        self.main_app.cancelled = False
+        
+        window_title = self.main_app.window_var.get()
+        if not window_title:
+            messagebox.showerror("错误", "请先选择目标窗口")
+            return
+        
+        window = self.main_app.find_window(window_title)
+        if not window:
+            messagebox.showerror("错误", f"找不到窗口: {window_title}")
+            return
+        
+        thread = threading.Thread(target=self.execute_fishing_cycle, args=(window,))
+        thread.start()
+    
+    def execute_fishing_cycle(self, window):
+        fish_hsv = [
+            self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get(),
+            self.fish_h_high.get(), self.fish_s_high.get(), self.fish_v_high.get()
+        ]
+        
+        rod_hsv = [
+            self.rod_h_low.get(), self.rod_s_low.get(), self.rod_v_low.get(),
+            self.rod_h_high.get(), self.rod_s_high.get(), self.rod_v_high.get()
+        ]
+        
+        detect_percent = self.detect_area_percent.get()
+        
+        is_auto_loop = self.auto_fishing_loop.get()
+        loop_count = self.auto_fishing_loop_count.get()
+        
+        if is_auto_loop:
+            if loop_count == 0:
+                loop_count = float('inf')
+        else:
+            loop_count = 1
+        
+        current_loop = 0
+        
+        while not self.main_app.cancelled:
+            if current_loop > 0:
+                self.fishing_log("------------------------------------------------------")
+            current_loop += 1
+            self.fishing_log(f"=== 钓鱼循环 第 {current_loop} 轮 ===")
+            
+            timeout_triggered = False
+            
+            if self.phase_drop_line_enabled.get():
+                result = self.phase_drop_line(
+                    window, fish_hsv, detect_percent,
+                    self.phase_drop_line_delay.get(),
+                    self.phase_drop_line_interval.get(),
+                    self.phase_drop_line_timeout.get()
+                )
+                if result == "timeout":
+                    self.fishing_log("下杆阶段超时，结束本轮")
+                    continue
+            
+            if self.phase_fishing_enabled.get():
+                result, timeout_triggered = self.phase_fishing(
+                    window, fish_hsv, rod_hsv, detect_percent,
+                    self.key_press_time_per_px.get(),
+                    self.phase_fishing_delay.get()
+                )
+            
+            if self.phase_cleanup_enabled.get():
+                self.phase_cleanup(
+                    window, fish_hsv, detect_percent,
+                    self.phase_cleanup_delay.get(),
+                    timeout_triggered
+                )
+            
+            if loop_count != float('inf') and current_loop >= loop_count:
+                break
+        
+        self.fishing_log("钓鱼执行结束")
+    
+    def execute_drop_line_alone(self):
+        self.main_app.cancelled = False
+        
+        window_title = self.main_app.window_var.get()
+        if not window_title:
+            messagebox.showerror("错误", "请先选择目标窗口")
+            return
+        
+        window = self.main_app.find_window(window_title)
+        if not window:
+            messagebox.showerror("错误", f"找不到窗口: {window_title}")
+            return
+        
+        fish_hsv = [
+            self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get(),
+            self.fish_h_high.get(), self.fish_s_high.get(), self.fish_v_high.get()
+        ]
+        
+        self.phase_drop_line(
+            window, fish_hsv, self.detect_area_percent.get(),
+            self.phase_drop_line_delay.get(),
+            self.phase_drop_line_interval.get(),
+            self.phase_drop_line_timeout.get()
+        )
+        self.fishing_log("------------------------------------------------------")
+    
+    def execute_fishing_alone(self):
+        self.main_app.cancelled = False
+        
+        window_title = self.main_app.window_var.get()
+        if not window_title:
+            messagebox.showerror("错误", "请先选择目标窗口")
+            return
+        
+        window = self.main_app.find_window(window_title)
+        if not window:
+            messagebox.showerror("错误", f"找不到窗口: {window_title}")
+            return
+        
+        fish_hsv = [
+            self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get(),
+            self.fish_h_high.get(), self.fish_s_high.get(), self.fish_v_high.get()
+        ]
+        
+        rod_hsv = [
+            self.rod_h_low.get(), self.rod_s_low.get(), self.rod_v_low.get(),
+            self.rod_h_high.get(), self.rod_s_high.get(), self.rod_v_high.get()
+        ]
+        
+        self.phase_fishing(
+            window, fish_hsv, rod_hsv, self.detect_area_percent.get(),
+            self.key_press_time_per_px.get(),
+            self.phase_fishing_delay.get()
+        )
+        self.fishing_log("------------------------------------------------------")
+    
+    def execute_cleanup_alone(self):
+        self.main_app.cancelled = False
+        
+        window_title = self.main_app.window_var.get()
+        if not window_title:
+            messagebox.showerror("错误", "请先选择目标窗口")
+            return
+        
+        window = self.main_app.find_window(window_title)
+        if not window:
+            messagebox.showerror("错误", f"找不到窗口: {window_title}")
+            return
+        
+        fish_hsv = [
+            self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get(),
+            self.fish_h_high.get(), self.fish_s_high.get(), self.fish_v_high.get()
+        ]
+        
+        self.phase_cleanup(
+            window, fish_hsv, self.detect_area_percent.get(),
+            self.phase_cleanup_delay.get()
+        )
+        self.fishing_log("------------------------------------------------------")
+    
+    def test_capture_region(self):
+        window_title = self.main_app.window_var.get()
+        if not window_title:
+            messagebox.showerror("错误", "请先选择目标窗口")
+            return
+        
+        window = self.main_app.find_window(window_title)
+        if not window:
+            messagebox.showerror("错误", f"找不到窗口: {window_title}")
+            return
+        
+        window.activate()
+        time.sleep(0.3)
+        
+        screenshot = self.main_app.capture_window(window)
+        if screenshot is None:
+            messagebox.showerror("错误", "无法捕获窗口截图")
+            return
+        
+        detect_percent = self.detect_area_percent.get()
+        img_height = screenshot.shape[0]
+        top_region_height = int(img_height * detect_percent / 100)
+        
+        cropped_region = screenshot[:top_region_height, :]
+        
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        output_dir = "images/fishing_screenshots"
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = f"{output_dir}/match_region_{timestamp}.png"
+        
+        cv2.imwrite(output_path, cropped_region)
+        
+        messagebox.showinfo("成功", f"检测区域截图已保存: {output_path}")
+        self.fishing_log(f"检测区域截图已保存: {output_path}")
+    
+    def get_image_hsv(self):
+        from tkinter import filedialog
+        
+        file_path = filedialog.askopenfilename(
+            title="选择图片文件",
+            filetypes=[("图片文件", "*.png;*.jpg;*.jpeg;*.bmp")]
+        )
+        
+        if not file_path:
+            return
+        
+        image = cv2.imread(file_path)
+        if image is None:
+            messagebox.showerror("错误", "无法读取图片文件")
+            return
+        
+        hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        
+        h_min = int(np.min(hsv_image[:, :, 0]))
+        h_max = int(np.max(hsv_image[:, :, 0]))
+        s_min = int(np.min(hsv_image[:, :, 1]))
+        s_max = int(np.max(hsv_image[:, :, 1]))
+        v_min = int(np.min(hsv_image[:, :, 2]))
+        v_max = int(np.max(hsv_image[:, :, 2]))
+        
+        result = f"HSV范围:\nH: {h_min} - {h_max}\nS: {s_min} - {s_max}\nV: {v_min} - {v_max}"
+        messagebox.showinfo("HSV分析结果", result)
+        self.fishing_log(f"图片HSV分析完成: {file_path}\n{result}")
+    
+    def test_fish_rod_capture(self):
+        window_title = self.main_app.window_var.get()
+        if not window_title:
+            messagebox.showerror("错误", "请先选择目标窗口")
+            return
+        
+        window = self.main_app.find_window(window_title)
+        if not window:
+            messagebox.showerror("错误", f"找不到窗口: {window_title}")
+            return
+        
+        window.activate()
+        time.sleep(0.3)
+        
+        screenshot = self.main_app.capture_window(window)
+        if screenshot is None:
+            messagebox.showerror("错误", "无法捕获窗口截图")
+            return
+        
+        detect_percent = self.detect_area_percent.get()
+        
+        fish_hsv_low = (self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get())
+        fish_hsv_high = (self.fish_h_high.get(), self.fish_s_high.get(), self.fish_v_high.get())
+        
+        rod_hsv_low = (self.rod_h_low.get(), self.rod_s_low.get(), self.rod_v_low.get())
+        rod_hsv_high = (self.rod_h_high.get(), self.rod_s_high.get(), self.rod_v_high.get())
+        
+        success_fish, fish_path, fish_center, fish_bounds = self.detect_hsv_and_capture(screenshot, fish_hsv_low[0], fish_hsv_low[1], fish_hsv_low[2], fish_hsv_high[0], fish_hsv_high[1], fish_hsv_high[2], 50, "fish", detect_percent)
+        success_rod, rod_path, rod_center, rod_bounds = self.detect_hsv_and_capture(screenshot, rod_hsv_low[0], rod_hsv_low[1], rod_hsv_low[2], rod_hsv_high[0], rod_hsv_high[1], rod_hsv_high[2], 50, "rod", detect_percent)
+        
+        if success_fish:
+            self.fishing_log(f"【fish】匹配成功，截图已保存: {fish_path}")
+        else:
+            self.fishing_log("【fish】未找到匹配区域")
+        
+        if success_rod:
+            self.fishing_log(f"【rod】匹配成功，截图已保存: {rod_path}")
+        else:
+            self.fishing_log("【rod】未找到匹配区域")
+        
+        if success_fish and success_rod:
+            messagebox.showinfo("成功", f"两组HSV颜色检测完成!\n【fish】截图已保存: {fish_path}\n【rod】截图已保存: {rod_path}")
+        elif success_fish:
+            messagebox.showinfo("部分成功", f"【fish】检测成功，截图已保存: {fish_path}\n【rod】未找到匹配区域")
+        elif success_rod:
+            messagebox.showinfo("部分成功", f"【rod】检测成功，截图已保存: {rod_path}\n【fish】未找到匹配区域")
+        else:
+            messagebox.showinfo("结果", "两组HSV颜色均未找到匹配区域")
