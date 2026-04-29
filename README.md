@@ -1,6 +1,6 @@
 # 异环小工具
 
-![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/tip/tip3.png)
+![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/images/tip/tip3.png)
 
 ## 功能说明
 
