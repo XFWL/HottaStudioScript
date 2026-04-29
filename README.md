@@ -1,6 +1,6 @@
 # 异环小工具
 
-![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/images/tip/tip3.png)
+![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/images/tips/tip3.png)
 
 ## 功能说明
 
@@ -14,6 +14,9 @@
 ### 方法1：使用已打包的可执行文件（推荐）
 
 1. 直接以管理员运行 `dist/异环小工具.exe` 文件
+2. 大小太大，git上传不上去
+3. 我用夸克网盘分享了「异环小工具」，点击链接即可保存。打开「夸克APP」，无需下载在线播放视频，畅享原画5倍速，支持电视投屏。
+   链接：https://pan.quark.cn/s/31ef9bf94dbf
 
 ### 方法2：从源代码运行
 
