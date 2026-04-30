@@ -35,7 +35,9 @@
 
 ## 店长特供
 
-![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/images/tips/fishing_module.png)
+![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/shop_module.png)
+
+
 
 ### **店长特供 需要有 娜娜莉 和 白藏 ！！！**
 
@@ -51,17 +53,17 @@
 ### 使用方法
 
 1. **准备工作**：
-   
+  
    - 确保默认选择「店长特供」
 
-   ![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/images/tips/shop_module_1.png)
+   ![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/shop_module_1.png)
    
    - 确保默认选中 2-8 关卡，没选中可以先进去玩一局
    
-   ![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/images/tips/shop_module_2.png)
+   ![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/shop_module_2.png)
    
 2. **GUI界面设置**：
-   
+  
    - **选择目标窗口**：从下拉列表中选择需要操作的窗口
    - **操作设置**：设置每步的参数
    - **循环设置**：选择执行次数（一次、指定次数、一直执行）
@@ -82,7 +84,7 @@
 
 ## 钓鱼
 
-![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/images/tips/fishing_module.png)
+![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/fishing_module.png)
 
 ### 功能介绍
 
@@ -97,10 +99,10 @@
 ### 使用方法
 
 1. **准备工作**：
-   
+  
    - 确保游戏处于钓鱼状态，然后点击开始执行就可以了
 
-   ![](https://raw.githubusercontent.com/XFWL/HottaStudioScript/refs/heads/main/images/tips/fishing_module_1.png)
+   ![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/fishing_module_1.png)
    
    - 调整好HSV颜色参数（以及测试过调好了，不喜欢可使用测试按钮获取参考值）
    
