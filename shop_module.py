@@ -174,6 +174,10 @@ class ShopModule:
                     self.execute_all_steps(window)
                     count += 1
     
+        # 如果是F12取消导致的结束，弹出提示
+        if self.main_app.cancelled:
+            messagebox.showinfo("操作取消", "店长特供操作已取消")
+    
     def execute_all_steps(self, window):
         if self.main_app.cancelled:
             return

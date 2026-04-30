@@ -74,11 +74,13 @@ class FishingModule:
         self.auto_fishing_loop = tk.BooleanVar(value=False)
         self.auto_fishing_loop_count = tk.IntVar(value=0)
         self.phase_drop_line_delay = tk.DoubleVar(value=0)
-        self.phase_drop_line_interval = tk.IntVar(value=1)
+        self.phase_drop_line_interval = tk.IntVar(value=0.75)
         self.phase_drop_line_timeout = tk.IntVar(value=10)
         self.phase_fishing_delay = tk.DoubleVar(value=0.25)
         self.phase_cleanup_delay = tk.DoubleVar(value=1)
         self.buy_bait_enabled = tk.BooleanVar(value=False)
+
+        self.sell_catch_enabled = tk.BooleanVar(value=False)
 
         drop_line_frame = ttk.Frame(fishing_content_frame)
         drop_line_frame.pack(anchor=tk.NW, pady=3, padx=20)
@@ -108,7 +110,7 @@ class FishingModule:
         ttk.Button(fishing_phase_frame, text="单独执行", command=self.execute_fishing_alone).pack(side=tk.LEFT, padx=10)
 
         timeout_info_frame = ttk.Frame(fishing_content_frame)
-        timeout_info_frame.pack(anchor=tk.NW, pady=3, padx=38)
+        timeout_info_frame.pack(anchor=tk.NW, pady=3, padx=(85, 38))
         ttk.Label(timeout_info_frame, text="超时设置(循环时):", foreground="#888888").pack(side=tk.LEFT, padx=5)
         ttk.Label(timeout_info_frame, text="超时时间", foreground="#888888").pack(side=tk.LEFT, padx=5)
         ttk.Label(timeout_info_frame, text="11", width=4, foreground="#888888", font=('Arial', 9)).pack(side=tk.LEFT, padx=2)
@@ -126,6 +128,30 @@ class FishingModule:
         ttk.Label(cleanup_frame, text="秒").pack(side=tk.LEFT, padx=2)
         ttk.Button(cleanup_frame, text="单独执行", command=self.execute_cleanup_alone).pack(side=tk.LEFT, padx=10)
 
+        # 出售渔获
+        sell_catch_frame = ttk.Frame(fishing_content_frame)
+        sell_catch_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(sell_catch_frame, text="出售渔获:").pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(sell_catch_frame, text="是否在循环中启用", variable=self.sell_catch_enabled).pack(side=tk.LEFT, padx=5)
+        ttk.Label(sell_catch_frame, text="触发条件: 钓鱼").pack(side=tk.LEFT, padx=5)
+        self.sell_catch_interval = tk.IntVar(value=99)
+        ttk.Entry(sell_catch_frame, textvariable=self.sell_catch_interval, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Label(sell_catch_frame, text="次 后出售一次渔获").pack(side=tk.LEFT, padx=2)
+        ttk.Button(sell_catch_frame, text="单独执行", command=self.execute_sell_catch_alone).pack(side=tk.LEFT, padx=10)
+
+        # 补充鱼饵
+        buy_bait_frame = ttk.Frame(fishing_content_frame)
+        buy_bait_frame.pack(anchor=tk.NW, pady=3, padx=20)
+        ttk.Label(buy_bait_frame, text="补充鱼饵:").pack(side=tk.LEFT, padx=5)
+        ttk.Checkbutton(buy_bait_frame, text="是否在循环中启用", variable=self.buy_bait_enabled).pack(side=tk.LEFT, padx=5)
+        ttk.Label(buy_bait_frame, text="触发条件: 钓鱼").pack(side=tk.LEFT, padx=5)
+        self.buy_bait_interval = tk.IntVar(value=99)
+        ttk.Entry(buy_bait_frame, textvariable=self.buy_bait_interval, width=5).pack(side=tk.LEFT, padx=2)
+        ttk.Label(buy_bait_frame, text="次 后购买一次99个鱼饵").pack(side=tk.LEFT, padx=2)
+        self.buy_bait_test_mode = tk.BooleanVar(value=False)
+        ttk.Checkbutton(buy_bait_frame, text="测试（只购买1个鱼饵）", variable=self.buy_bait_test_mode).pack(side=tk.LEFT, padx=10)
+        ttk.Button(buy_bait_frame, text="单独执行", command=self.execute_buy_bait_alone).pack(side=tk.LEFT, padx=10)
+
         auto_loop_frame = ttk.Frame(fishing_content_frame)
         auto_loop_frame.pack(anchor=tk.NW, pady=3, padx=20)
         ttk.Checkbutton(auto_loop_frame, text="自动循环钓鱼", variable=self.auto_fishing_loop).pack(side=tk.LEFT, padx=5)
@@ -133,17 +159,6 @@ class FishingModule:
         ttk.Label(auto_loop_frame, text="循环次数(0为无限，不勾选默认循环1遍)").pack(side=tk.LEFT, padx=5)
 
         ttk.Label(fishing_content_frame, text="其他设置", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
-
-        buy_bait_frame = ttk.Frame(fishing_content_frame)
-        buy_bait_frame.pack(anchor=tk.NW, pady=3, padx=20)
-        ttk.Checkbutton(buy_bait_frame, text="是否在循环中启用", variable=self.buy_bait_enabled).pack(side=tk.LEFT, padx=5)
-        ttk.Label(buy_bait_frame, text="触发条件: 钓鱼").pack(side=tk.LEFT, padx=5)
-        self.buy_bait_interval = tk.IntVar(value=99)
-        ttk.Entry(buy_bait_frame, textvariable=self.buy_bait_interval, width=5).pack(side=tk.LEFT, padx=2)
-        ttk.Label(buy_bait_frame, text="次 后购买一次99个鱼饵").pack(side=tk.LEFT, padx=2)
-        ttk.Button(buy_bait_frame, text="单独执行", command=self.execute_buy_bait_alone).pack(side=tk.LEFT, padx=10)
-
-        ttk.Label(fishing_content_frame, text="识别匹配设置以及测试功能按钮", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
 
         detect_area_frame = ttk.Frame(fishing_content_frame)
         detect_area_frame.pack(anchor=tk.NW, pady=3, padx=20)
@@ -341,7 +356,8 @@ class FishingModule:
                         
             except Exception as e:
                 self.fishing_log(f"钓鱼阶段错误: {str(e)}")
-                time.sleep(0.1)
+                self.fishing_log("钓鱼阶段异常，终止操作")
+                return (None, timeout_triggered)
         
         return ("cancelled", timeout_triggered)
     
@@ -382,12 +398,15 @@ class FishingModule:
                 window_width, window_height = window.width, window.height
                 pyautogui.click(window_left + window_width // 2, window_top + window_height // 2)
                 time.sleep(0.5)
-                break
+                return "success"
                 
             except Exception as e:
                 self.fishing_log(f"收尾阶段错误: {str(e)}")
                 retry_count += 1
                 time.sleep(1)
+        
+        self.fishing_log(f"收尾阶段失败，重试次数已达上限({max_retry}次)")
+        return "failed"
     
     def start_fishing(self):
         self.main_app.cancelled = False
@@ -424,6 +443,9 @@ class FishingModule:
         buy_bait_enabled = self.buy_bait_enabled.get()
         buy_bait_interval = self.buy_bait_interval.get()
         
+        sell_catch_enabled = self.sell_catch_enabled.get()
+        sell_catch_interval = self.sell_catch_interval.get()
+        
         if is_auto_loop:
             if loop_count == 0:
                 loop_count = float('inf')
@@ -432,15 +454,9 @@ class FishingModule:
         
         current_loop = 0
         fishing_count_since_buy = 0
+        fishing_count_since_sell = 0
         
         while not self.main_app.cancelled:
-            # 检查是否需要买鱼饵
-            if buy_bait_enabled and current_loop > 0 and fishing_count_since_buy >= buy_bait_interval:
-                self.fishing_log(f"已完成 {fishing_count_since_buy} 次钓鱼，开始补充鱼饵")
-                if not self.buy_bait(window):
-                    self.fishing_log("补充鱼饵失败，继续钓鱼")
-                fishing_count_since_buy = 0
-            
             if current_loop > 0:
                 self.fishing_log("------------------------------------------------------")
             current_loop += 1
@@ -448,6 +464,7 @@ class FishingModule:
             
             timeout_triggered = False
             
+            # 下杆阶段
             if self.phase_drop_line_enabled.get():
                 result = self.phase_drop_line(
                     window, fish_hsv, detect_percent,
@@ -456,29 +473,69 @@ class FishingModule:
                     self.phase_drop_line_timeout.get()
                 )
                 if result == "timeout":
-                    self.fishing_log("下杆阶段超时，结束本轮")
-                    continue
+                    self.fishing_log("下杆阶段超时，终止操作")
+                    break
+                elif result != "success":
+                    self.fishing_log("下杆阶段失败，终止操作")
+                    break
             
+            # 钓鱼阶段
             if self.phase_fishing_enabled.get():
                 result, timeout_triggered = self.phase_fishing(
                     window, fish_hsv, rod_hsv, detect_percent,
                     self.key_press_time_per_px.get(),
                     self.phase_fishing_delay.get()
                 )
+                if result == "cancelled":
+                    self.fishing_log("钓鱼阶段被取消")
+                    break
+                elif result is None:
+                    self.fishing_log("钓鱼阶段失败，终止操作")
+                    break
             
+            # 收尾阶段
             if self.phase_cleanup_enabled.get():
-                self.phase_cleanup(
+                result = self.phase_cleanup(
                     window, fish_hsv, detect_percent,
                     self.phase_cleanup_delay.get(),
                     timeout_triggered
                 )
+                if result == "failed":
+                    self.fishing_log("收尾阶段失败，终止操作")
+                    break
             
+            # 出售渔获
+            fishing_count_since_sell += 1
+            if sell_catch_enabled and fishing_count_since_sell >= sell_catch_interval:
+                self.fishing_log(f"已完成 {fishing_count_since_sell} 次钓鱼，开始出售渔获")
+                if self.sell_catch(window):
+                    self.fishing_log("出售渔获完成，重置计数")
+                    fishing_count_since_sell = 0
+                else:
+                    self.fishing_log("出售渔获失败，终止操作")
+                    fishing_count_since_sell = 0
+                    break
+            
+            # 补充鱼饵
             fishing_count_since_buy += 1
+            if buy_bait_enabled and fishing_count_since_buy >= buy_bait_interval:
+                self.fishing_log(f"已完成 {fishing_count_since_buy} 次钓鱼，开始补充鱼饵")
+                if self.buy_bait(window):
+                    self.fishing_log("补充鱼饵完成，重置计数")
+                    fishing_count_since_buy = 0
+                else:
+                    self.fishing_log("补充鱼饵失败，终止操作")
+                    fishing_count_since_buy = 0
+                    break
             
             if loop_count != float('inf') and current_loop >= loop_count:
                 break
         
         self.fishing_log("钓鱼执行结束")
+        
+        # 如果是F12取消导致的结束，弹出提示
+        if self.main_app.cancelled:
+            messagebox.showinfo("操作取消", "钓鱼操作已取消")
     
     def execute_buy_bait_alone(self):
         self.main_app.cancelled = False
@@ -703,6 +760,25 @@ class FishingModule:
             self.fishing_log(f"无法读取模板图片: {template_path}")
             return None
         
+        # 获取当前窗口分辨率
+        current_width, current_height = screenshot.shape[1], screenshot.shape[0]
+        
+        # 定义基准分辨率（模板图片的原始分辨率）
+        base_width, base_height = 1920, 1080
+        
+        # 计算缩放比例
+        scale_x = current_width / base_width
+        scale_y = current_height / base_height
+        
+        # 缩放模板（按比例缩放）
+        if scale_x != 1.0 or scale_y != 1.0:
+            original_h, original_w = template.shape[:2]
+            new_w = int(original_w * scale_x)
+            new_h = int(original_h * scale_y)
+            if new_w > 0 and new_h > 0:
+                template = cv2.resize(template, (new_w, new_h), interpolation=cv2.INTER_AREA)
+                self.fishing_log(f"模板 {template_name} 已缩放: {scale_x:.2f}x{scale_y:.2f}")
+        
         result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
         
@@ -732,43 +808,38 @@ class FishingModule:
             if self.main_app.cancelled:
                 return False
             
-            # 2. 识别image1-1.png并点击，同时保存坐标
-            screenshot = self.main_app.capture_window(window)
-            if screenshot is None:
-                self.fishing_log("无法获取窗口截图，结束补充鱼饵")
-                return False
+            # 2. 识别image2-1.png并保存坐标（最多重试4次）
+            pos1 = None
+            retry_count = 0
+            while retry_count < 4 and not self.main_app.cancelled:
+                screenshot = self.main_app.capture_window(window)
+                if screenshot is None:
+                    self.fishing_log("无法获取窗口截图")
+                    retry_count += 1
+                    time.sleep(1)
+                    continue
+                
+                pos1 = self.find_fishing_template(screenshot, "image2-1.png")
+                if pos1:
+                    # 保存坐标时向上移动100px
+                    saved_pos1 = (pos1[0], pos1[1] - 100)
+                    self.fishing_log(f"找到image2-1.png，原始位置: {pos1}，保存位置（上移100px）: {saved_pos1}")
+                    window_left, window_top = window.left, window.top
+                    pyautogui.moveTo(window_left + pos1[0], window_top + pos1[1], duration=0.3)
+                    # 测试模式：只移动不点击；默认模式：移动并点击
+                    if not self.buy_bait_test_mode.get():
+                        pyautogui.click(window_left + pos1[0], window_top + pos1[1])
+                        self.fishing_log("点击image2-1.png位置")
+                    else:
+                        self.fishing_log("测试模式：仅移动，不点击image2-1.png")
+                    break
+                else:
+                    self.fishing_log(f"未找到image2-1.png，结束补充鱼饵 (第{retry_count + 1}/4次)")
+                    retry_count += 1
+                    time.sleep(1)
             
-            pos1 = self.find_fishing_template(screenshot, "image1-1.png")
-            if pos1:
-                # 保存坐标时向上移动100px
-                saved_pos1 = (pos1[0], pos1[1] - 100)
-                self.fishing_log(f"找到image1-1.png，原始位置: {pos1}，保存位置（上移100px）: {saved_pos1}")
-                window_left, window_top = window.left, window.top
-                pyautogui.moveTo(window_left + pos1[0], window_top + pos1[1], duration=0.3)
-                pyautogui.click(window_left + pos1[0], window_top + pos1[1])
-            else:
-                self.fishing_log("未找到image1-1.png，结束补充鱼饵")
-                return False
-            
-            time.sleep(1)
-            
-            if self.main_app.cancelled:
-                return False
-            
-            # 3. 识别image1-2.png并点击
-            screenshot = self.main_app.capture_window(window)
-            if screenshot is None:
-                self.fishing_log("无法获取窗口截图，结束补充鱼饵")
-                return False
-            
-            pos2 = self.find_fishing_template(screenshot, "image1-2.png")
-            if pos2:
-                self.fishing_log(f"找到image1-2.png，点击位置: {pos2}")
-                window_left, window_top = window.left, window.top
-                pyautogui.moveTo(window_left + pos2[0], window_top + pos2[1], duration=0.3)
-                pyautogui.click(window_left + pos2[0], window_top + pos2[1])
-            else:
-                self.fishing_log("未找到image1-2.png，结束补充鱼饵")
+            if pos1 is None:
+                self.fishing_log("未找到image2-1.png，达到重试上限")
                 return False
             
             time.sleep(1)
@@ -776,21 +847,194 @@ class FishingModule:
             if self.main_app.cancelled:
                 return False
             
-            # 4. 识别image1-3.png并点击
-            screenshot = self.main_app.capture_window(window)
-            if screenshot is None:
-                self.fishing_log("无法获取窗口截图，结束补充鱼饵")
+            # 3. 识别image2-2.png并点击（最多重试4次）
+            pos2 = None
+            retry_count = 0
+            while retry_count < 4 and not self.main_app.cancelled:
+                screenshot = self.main_app.capture_window(window)
+                if screenshot is None:
+                    self.fishing_log("无法获取窗口截图")
+                    retry_count += 1
+                    time.sleep(1)
+                    continue
+                
+                pos2 = self.find_fishing_template(screenshot, "image2-2.png")
+                if pos2:
+                    self.fishing_log(f"找到image2-2.png，点击位置: {pos2}")
+                    window_left, window_top = window.left, window.top
+                    pyautogui.moveTo(window_left + pos2[0], window_top + pos2[1], duration=0.3)
+                    pyautogui.click(window_left + pos2[0], window_top + pos2[1])
+                    break
+                else:
+                    self.fishing_log(f"未找到image2-2.png，结束补充鱼饵 (第{retry_count + 1}/4次)")
+                    retry_count += 1
+                    time.sleep(1)
+            
+            if pos2 is None:
+                self.fishing_log("未找到image2-2.png，达到重试上限")
                 return False
             
-            pos3 = self.find_fishing_template(screenshot, "image1-3.png")
-            if pos3:
-                self.fishing_log(f"找到image1-3.png，点击位置: {pos3}")
-                window_left, window_top = window.left, window.top
-                pyautogui.moveTo(window_left + pos3[0], window_top + pos3[1], duration=0.3)
-                pyautogui.click(window_left + pos3[0], window_top + pos3[1])
-            else:
-                self.fishing_log("未找到image1-3.png，结束补充鱼饵")
+            time.sleep(1)
+            
+            if self.main_app.cancelled:
                 return False
+            
+            # 4. 识别image2-3.png并点击（失败则跳过）
+            screenshot = self.main_app.capture_window(window)
+            if screenshot is not None:
+                pos3 = self.find_fishing_template(screenshot, "image2-3.png")
+                if pos3:
+                    self.fishing_log(f"找到image2-3.png，点击位置: {pos3}")
+                    window_left, window_top = window.left, window.top
+                    pyautogui.moveTo(window_left + pos3[0], window_top + pos3[1], duration=0.3)
+                    pyautogui.click(window_left + pos3[0], window_top + pos3[1])
+                else:
+                    self.fishing_log("未找到image2-3.png，跳过当前流程")
+            
+            # 5. ESC并识别image2-4.png，最多重试4次
+            retry_count = 0
+            while retry_count < 4 and not self.main_app.cancelled:
+                time.sleep(1)
+                pyautogui.press('esc')
+                self.fishing_log(f"按下ESC键 (重试第{retry_count + 1}次)")
+                time.sleep(1)
+                
+                screenshot = self.main_app.capture_window(window)
+                if screenshot is None:
+                    self.fishing_log("无法获取窗口截图")
+                    retry_count += 1
+                    continue
+                
+                pos4 = self.find_fishing_template(screenshot, "image2-4.png")
+                if pos4:
+                    self.fishing_log("找到image2-4.png，补充鱼饵完成")
+                    return True
+                else:
+                    self.fishing_log("未找到image2-4.png，使用保存的坐标点击")
+                    if saved_pos1:
+                        window_left, window_top = window.left, window.top
+                        pyautogui.moveTo(window_left + saved_pos1[0], window_top + saved_pos1[1], duration=0.3)
+                        pyautogui.click(window_left + saved_pos1[0], window_top + saved_pos1[1])
+                        self.fishing_log("点击完成")
+                    retry_count += 1
+            
+            self.fishing_log("补充鱼饵失败")
+            return False
+        finally:
+            saved_pos1 = None
+            self.fishing_log("已清除image2-1.png坐标")
+
+    def sell_catch(self, window):
+        saved_pos1 = None
+        try:
+            if self.main_app.cancelled:
+                return False
+            
+            self.fishing_log("=== 开始出售渔获 ===")
+            
+            window.activate()
+            
+            # 1. 单击Q键
+            pyautogui.press('q')
+            self.fishing_log("按下Q键")
+            time.sleep(1)
+            
+            if self.main_app.cancelled:
+                return False
+            
+            # 2. 识别image1-1.png并点击，保存坐标（最多重试4次）
+            pos1 = None
+            retry_count = 0
+            while retry_count < 4 and not self.main_app.cancelled:
+                screenshot = self.main_app.capture_window(window)
+                if screenshot is None:
+                    self.fishing_log("无法获取窗口截图")
+                    retry_count += 1
+                    time.sleep(1)
+                    continue
+                
+                pos1 = self.find_fishing_template(screenshot, "image1-1.png")
+                if pos1:
+                    saved_pos1 = pos1
+                    self.fishing_log(f"找到image1-1.png，保存坐标: {saved_pos1}")
+                    window_left, window_top = window.left, window.top
+                    pyautogui.moveTo(window_left + pos1[0], window_top + pos1[1], duration=0.3)
+                    pyautogui.click(window_left + pos1[0], window_top + pos1[1])
+                    break
+                else:
+                    self.fishing_log(f"未找到image1-1.png，重试出售渔获 (第{retry_count + 1}/4次)")
+                    retry_count += 1
+                    time.sleep(1)
+            
+            if pos1 is None:
+                self.fishing_log("未找到image1-1.png，达到重试上限")
+                return False
+            
+            time.sleep(1)
+            
+            if self.main_app.cancelled:
+                return False
+            
+            # 3. 识别image1-2.png并点击（最多重试4次）
+            pos2 = None
+            retry_count = 0
+            while retry_count < 4 and not self.main_app.cancelled:
+                screenshot = self.main_app.capture_window(window)
+                if screenshot is None:
+                    self.fishing_log("无法获取窗口截图")
+                    retry_count += 1
+                    time.sleep(1)
+                    continue
+                
+                pos2 = self.find_fishing_template(screenshot, "image1-2.png")
+                if pos2:
+                    self.fishing_log(f"找到image1-2.png，点击位置: {pos2}")
+                    window_left, window_top = window.left, window.top
+                    pyautogui.moveTo(window_left + pos2[0], window_top + pos2[1], duration=0.3)
+                    pyautogui.click(window_left + pos2[0], window_top + pos2[1])
+                    break
+                else:
+                    self.fishing_log(f"未找到image1-2.png，重试出售渔获 (第{retry_count + 1}/4次)")
+                    retry_count += 1
+                    time.sleep(1)
+            
+            if pos2 is None:
+                self.fishing_log("未找到image1-2.png，达到重试上限")
+                return False
+            
+            time.sleep(1)
+            
+            if self.main_app.cancelled:
+                return False
+            
+            # 4. 识别image1-3.png并点击（最多重试4次）
+            pos3 = None
+            retry_count = 0
+            while retry_count < 4 and not self.main_app.cancelled:
+                screenshot = self.main_app.capture_window(window)
+                if screenshot is None:
+                    self.fishing_log("无法获取窗口截图")
+                    retry_count += 1
+                    time.sleep(1)
+                    continue
+                
+                pos3 = self.find_fishing_template(screenshot, "image1-3.png")
+                if pos3:
+                    self.fishing_log(f"找到image1-3.png，点击位置: {pos3}")
+                    window_left, window_top = window.left, window.top
+                    pyautogui.moveTo(window_left + pos3[0], window_top + pos3[1], duration=0.3)
+                    pyautogui.click(window_left + pos3[0], window_top + pos3[1])
+                    break
+                else:
+                    self.fishing_log(f"未找到image1-3.png，重试出售渔获 (第{retry_count + 1}/4次)")
+                    retry_count += 1
+                    time.sleep(1)
+            
+            if pos3 is None:
+                self.fishing_log("未找到image1-3.png，达到重试上限")
+                return False
+            
+            time.sleep(1)
             
             # 5. ESC并识别image1-4.png，最多重试4次
             retry_count = 0
@@ -808,19 +1052,33 @@ class FishingModule:
                 
                 pos4 = self.find_fishing_template(screenshot, "image1-4.png")
                 if pos4:
-                    self.fishing_log("找到image1-4.png，补充鱼饵完成")
+                    self.fishing_log("找到image1-4.png，出售渔获完成")
                     return True
                 else:
-                    self.fishing_log("未找到image1-4.png，使用保存的坐标点击image1-1.png")
-                    if saved_pos1:
-                        window_left, window_top = window.left, window.top
-                        pyautogui.moveTo(window_left + saved_pos1[0], window_top + saved_pos1[1], duration=0.3)
-                        pyautogui.click(window_left + saved_pos1[0], window_top + saved_pos1[1])
-                        self.fishing_log("点击image1-1.png完成")
+                    self.fishing_log("未找到image1-4.png，继续重试")
                     retry_count += 1
             
-            self.fishing_log("补充鱼饵失败")
+            self.fishing_log("出售渔获失败，终止操作")
             return False
         finally:
             saved_pos1 = None
             self.fishing_log("已清除image1-1.png坐标")
+
+    def execute_sell_catch_alone(self):
+        self.main_app.cancelled = False
+        
+        window_title = self.main_app.window_var.get()
+        if not window_title:
+            messagebox.showerror("错误", "请先选择目标窗口")
+            return
+        
+        window = self.main_app.find_window(window_title)
+        if not window:
+            messagebox.showerror("错误", f"找不到窗口: {window_title}")
+            return
+        
+        def thread_func():
+            self.sell_catch(window)
+        
+        thread = threading.Thread(target=thread_func)
+        thread.start()
