@@ -5,6 +5,7 @@ import pyautogui
 import cv2
 import numpy as np
 import os
+import json
 import time
 import keyboard
 import ctypes
@@ -23,6 +24,37 @@ if not is_admin():
     root.withdraw()
     messagebox.showwarning("权限警告", "建议以管理员权限运行此脚本，否则可能无法正常操作游戏窗口。")
     root.destroy()
+
+class ConfigManager:
+    """配置管理器 - 处理设置的保存和加载"""
+    CONFIG_DIR = "config"
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "settings.json")
+    
+    @staticmethod
+    def ensure_config_dir():
+        if not os.path.exists(ConfigManager.CONFIG_DIR):
+            os.makedirs(ConfigManager.CONFIG_DIR)
+    
+    @staticmethod
+    def save_settings(settings):
+        try:
+            ConfigManager.ensure_config_dir()
+            with open(ConfigManager.CONFIG_FILE, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, ensure_ascii=False, indent=4)
+            return True
+        except Exception as e:
+            print(f"保存设置失败: {e}")
+            return False
+    
+    @staticmethod
+    def load_settings():
+        try:
+            if os.path.exists(ConfigManager.CONFIG_FILE):
+                with open(ConfigManager.CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"加载设置失败: {e}")
+        return None
 
 class MainApplication:
     def __init__(self, root):
@@ -69,6 +101,8 @@ class MainApplication:
         self.window_combobox = ttk.Combobox(window_frame, textvariable=self.window_var, width=40)
         self.window_combobox.pack(side=tk.LEFT, padx=5)
         ttk.Button(window_frame, text="刷新", command=self.refresh_windows).pack(side=tk.LEFT, padx=5)
+        ttk.Button(window_frame, text="保存设置", command=self.save_all_settings).pack(side=tk.LEFT, padx=5)
+        ttk.Button(window_frame, text="加载设置", command=self.load_all_settings).pack(side=tk.LEFT, padx=5)
         
         self.refresh_windows()
         
@@ -80,6 +114,8 @@ class MainApplication:
         
         self.shop_module = ShopModule(self, self.notebook)
         self.fishing_module = FishingModule(self, self.notebook)
+        
+        self.load_all_settings()
     
     def setup_hotkeys(self):
         keyboard.add_hotkey('f12', self.cancel_operation)
@@ -121,6 +157,28 @@ class MainApplication:
     
     def end_round(self):
         self.current_round_log_count = 0
+    
+    def save_all_settings(self):
+        settings = {}
+        if hasattr(self, 'shop_module'):
+            settings['shop'] = self.shop_module.get_settings()
+        if hasattr(self, 'fishing_module'):
+            settings['fishing'] = self.fishing_module.get_settings()
+        
+        if ConfigManager.save_settings(settings):
+            messagebox.showinfo("提示", "设置已保存")
+        else:
+            messagebox.showerror("错误", "保存设置失败")
+    
+    def load_all_settings(self):
+        settings = ConfigManager.load_settings()
+        if settings:
+            if hasattr(self, 'shop_module'):
+                self.shop_module.load_settings(settings.get('shop', {}))
+            if hasattr(self, 'fishing_module'):
+                self.fishing_module.load_settings(settings.get('fishing', {}))
+        else:
+            print("未找到保存的设置或加载失败，使用默认设置")
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -1079,6 +1079,70 @@ class FishingModule:
         
         def thread_func():
             self.sell_catch(window)
-        
+
         thread = threading.Thread(target=thread_func)
         thread.start()
+
+    def get_settings(self):
+        """获取当前设置"""
+        return {
+            'fish_hsv': [self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get(),
+                        self.fish_h_high.get(), self.fish_s_high.get(), self.fish_v_high.get()],
+            'rod_hsv': [self.rod_h_low.get(), self.rod_s_low.get(), self.rod_v_low.get(),
+                       self.rod_h_high.get(), self.rod_s_high.get(), self.rod_v_high.get()],
+            'key_press_time_per_px': self.key_press_time_per_px.get(),
+            'phase_drop_line_enabled': self.phase_drop_line_enabled.get(),
+            'phase_fishing_enabled': self.phase_fishing_enabled.get(),
+            'phase_cleanup_enabled': self.phase_cleanup_enabled.get(),
+            'auto_fishing_loop': self.auto_fishing_loop.get(),
+            'auto_fishing_loop_count': self.auto_fishing_loop_count.get(),
+            'phase_drop_line_delay': self.phase_drop_line_delay.get(),
+            'phase_drop_line_interval': self.phase_drop_line_interval.get(),
+            'phase_drop_line_timeout': self.phase_drop_line_timeout.get(),
+            'phase_fishing_delay': self.phase_fishing_delay.get(),
+            'phase_cleanup_delay': self.phase_cleanup_delay.get(),
+            'buy_bait_enabled': self.buy_bait_enabled.get(),
+            'buy_bait_interval': self.buy_bait_interval.get(),
+            'buy_bait_test_mode': self.buy_bait_test_mode.get(),
+            'sell_catch_enabled': self.sell_catch_enabled.get(),
+            'sell_catch_interval': self.sell_catch_interval.get(),
+            'detect_area_percent': self.detect_area_percent.get(),
+        }
+
+    def load_settings(self, settings):
+        """加载设置"""
+        if not settings:
+            return
+        if 'fish_hsv' in settings:
+            hsv = settings['fish_hsv']
+            self.fish_h_low.set(hsv[0])
+            self.fish_s_low.set(hsv[1])
+            self.fish_v_low.set(hsv[2])
+            self.fish_h_high.set(hsv[3])
+            self.fish_s_high.set(hsv[4])
+            self.fish_v_high.set(hsv[5])
+        if 'rod_hsv' in settings:
+            hsv = settings['rod_hsv']
+            self.rod_h_low.set(hsv[0])
+            self.rod_s_low.set(hsv[1])
+            self.rod_v_low.set(hsv[2])
+            self.rod_h_high.set(hsv[3])
+            self.rod_s_high.set(hsv[4])
+            self.rod_h_high.set(hsv[5])
+        self.key_press_time_per_px.set(settings.get('key_press_time_per_px', 4))
+        self.phase_drop_line_enabled.set(settings.get('phase_drop_line_enabled', True))
+        self.phase_fishing_enabled.set(settings.get('phase_fishing_enabled', True))
+        self.phase_cleanup_enabled.set(settings.get('phase_cleanup_enabled', True))
+        self.auto_fishing_loop.set(settings.get('auto_fishing_loop', False))
+        self.auto_fishing_loop_count.set(settings.get('auto_fishing_loop_count', 0))
+        self.phase_drop_line_delay.set(settings.get('phase_drop_line_delay', 0))
+        self.phase_drop_line_interval.set(settings.get('phase_drop_line_interval', 0.75))
+        self.phase_drop_line_timeout.set(settings.get('phase_drop_line_timeout', 10))
+        self.phase_fishing_delay.set(settings.get('phase_fishing_delay', 0.25))
+        self.phase_cleanup_delay.set(settings.get('phase_cleanup_delay', 1))
+        self.buy_bait_enabled.set(settings.get('buy_bait_enabled', False))
+        self.buy_bait_interval.set(settings.get('buy_bait_interval', 99))
+        self.buy_bait_test_mode.set(settings.get('buy_bait_test_mode', False))
+        self.sell_catch_enabled.set(settings.get('sell_catch_enabled', False))
+        self.sell_catch_interval.set(settings.get('sell_catch_interval', 99))
+        self.detect_area_percent.set(settings.get('detect_area_percent', 15))

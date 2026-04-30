@@ -396,3 +396,43 @@ class ShopModule:
             self.main_app.cancelled = True
             self.shop_log("取消后续操作")
             messagebox.showerror("错误", f"第四步操作失败：未找到目标图片 {image_path}")
+
+    def get_settings(self):
+        """获取当前设置"""
+        return {
+            'image_path': self.image_path.get(),
+            'action_count': self.action_count.get(),
+            'image2_path': self.image2_path.get(),
+            'click_count': self.click_count.get(),
+            'image3_path': self.image3_path.get(),
+            'delay_time': self.delay_time.get(),
+            'hold_time': self.hold_time.get(),
+            'image4_path': self.image4_path.get(),
+            'click4_count': self.click4_count.get(),
+            'step4_delay': self.step4_delay.get(),
+            'loop_var': self.loop_var.get(),
+            'loop_count': self.loop_count.get(),
+            'execution_var': self.execution_var.get(),
+            'backup_enabled': self.backup_enabled.get(),
+            'backup_count': self.backup_count.get(),
+        }
+
+    def load_settings(self, settings):
+        """加载设置"""
+        if not settings:
+            return
+        self.image_path.set(settings.get('image_path', 'image1.png'))
+        self.action_count.set(settings.get('action_count', 2))
+        self.image2_path.set(settings.get('image2_path', 'image2.png'))
+        self.click_count.set(settings.get('click_count', 2))
+        self.image3_path.set(settings.get('image3_path', 'image3.png'))
+        self.delay_time.set(settings.get('delay_time', 4))
+        self.hold_time.set(settings.get('hold_time', 44))
+        self.image4_path.set(settings.get('image4_path', 'image4.png'))
+        self.click4_count.set(settings.get('click4_count', 2))
+        self.step4_delay.set(settings.get('step4_delay', 1))
+        self.loop_var.set(settings.get('loop_var', 'once'))
+        self.loop_count.set(settings.get('loop_count', 1))
+        self.execution_var.set(settings.get('execution_var', 'all'))
+        self.backup_enabled.set(settings.get('backup_enabled', True))
+        self.backup_count.set(settings.get('backup_count', 2))
