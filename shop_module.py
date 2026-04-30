@@ -122,7 +122,7 @@ class ShopModule:
             self.shop_log_text.see(tk.END)
             self.shop_log_text.config(state=tk.DISABLED)
     
-    def smooth_move_click(self, x, y, duration=0.5):
+    def smooth_move_click(self, x, y, duration=0.3):
         pyautogui.moveTo(x, y, duration=duration)
         pyautogui.click(x, y)
     
@@ -197,8 +197,8 @@ class ShopModule:
         if screenshot is None:
             return None
         
-        # 统一从 templates 文件夹读取模板
-        template_path = os.path.join("images", "templates", image_path)
+        # 统一从 shop_templates 文件夹读取模板
+        template_path = os.path.join("images", "shop_templates", image_path)
         if not os.path.exists(template_path):
             self.shop_log(f"模板图片不存在: {template_path}")
             return None
