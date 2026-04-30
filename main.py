@@ -13,6 +13,14 @@ import sys
 
 pyautogui.FAILSAFE = False
 
+def get_resource_path(relative_path):
+    """获取资源文件的绝对路径 - 支持开发环境和打包后"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()

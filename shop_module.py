@@ -3,9 +3,18 @@ from tkinter import ttk, messagebox
 import cv2
 import numpy as np
 import os
+import sys
 import time
 import pyautogui
 import threading
+
+def get_resource_path(relative_path):
+    """获取资源文件的绝对路径 - 支持开发环境和打包后"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class ShopModule:
     def __init__(self, main_app, notebook):
@@ -202,7 +211,7 @@ class ShopModule:
             return None
         
         # 统一从 shop_templates 文件夹读取模板
-        template_path = os.path.join("images", "shop_templates", image_path)
+        template_path = get_resource_path(os.path.join("images", "shop_templates", image_path))
         if not os.path.exists(template_path):
             self.shop_log(f"模板图片不存在: {template_path}")
             return None
