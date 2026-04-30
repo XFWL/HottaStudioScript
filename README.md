@@ -35,9 +35,7 @@
 
 ## 店长特供
 
-![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/shop_module.png)
-
-
+![](images/tips/shop_module.png)
 
 ### **店长特供 需要有 娜娜莉 和 白藏 ！！！**
 
@@ -53,23 +51,20 @@
 ### 使用方法
 
 1. **准备工作**：
-  
    - 确保默认选择「店长特供」
 
-   ![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/shop_module_1.png)
-   
+   ![](images/tips/shop_module_1.png)
    - 确保默认选中 2-8 关卡，没选中可以先进去玩一局
-   
-   ![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/shop_module_2.png)
-   
+
+   ![](images/tips/shop_module_2.png)
+
 2. **GUI界面设置**：
-  
    - **选择目标窗口**：从下拉列表中选择需要操作的窗口
    - **操作设置**：设置每步的参数
    - **循环设置**：选择执行次数（一次、指定次数、一直执行）
    - **执行选项**：选择要执行的操作（单个操作或所有步骤）
    - **重试功能**：启用在错误时重试当前操作
-   
+
 3. **开始执行**：
    - 点击"开始执行"按钮
    - 执行过程中可以按F12键取消操作
@@ -84,7 +79,7 @@
 
 ## 钓鱼
 
-![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/fishing_module.png)
+![](images/tips/fishing_module.png)
 
 ### 功能介绍
 
@@ -99,13 +94,11 @@
 ### 使用方法
 
 1. **准备工作**：
-  
    - 确保游戏处于钓鱼状态，然后点击开始执行就可以了
 
-   ![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/fishing_module_1.png)
-   
+   ![](images/tips/fishing_module_1.png)
    - 调整好HSV颜色参数（已经测试过调好了，不喜欢可使用测试按钮获取参考值，然后自己调整）
-   
+
 2. **GUI界面设置**：
    - **选择目标窗口**：从下拉列表中选择游戏窗口
    - **HSV颜色设置**：
@@ -220,11 +213,13 @@ HSV（色相、饱和度、明度）是颜色识别的关键参数：
 - 优化打包配置，图片资源自动打包进exe
 
 ### v1.1.0.0
+
 - 优化钓鱼阶段的延迟设置
 - 修复HSV颜色匹配问题
 - 增加更多调试信息
 
 ### v1.0.0.0
+
 - 初始版本
 - 包含店长特供和钓鱼两个模块
 - 支持HSV颜色识别
