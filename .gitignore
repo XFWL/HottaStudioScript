@@ -38,6 +38,7 @@ obj/
 dist/
 build/      # 编译目录
 out/
+config/
 output/
 x64/
 x86/
