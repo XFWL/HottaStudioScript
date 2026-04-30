@@ -182,7 +182,7 @@ class ShopModule:
                     self.shop_log(f"=== 第 {count} 轮 ===")
                     self.execute_all_steps(window)
                     count += 1
-    
+        
         # 如果是F12取消导致的结束，弹出提示
         if self.main_app.cancelled:
             messagebox.showinfo("操作取消", "店长特供操作已取消")
@@ -216,9 +216,12 @@ class ShopModule:
             self.shop_log(f"模板图片不存在: {template_path}")
             return None
         
-        template = cv2.imread(template_path, cv2.IMREAD_COLOR)
+        # 使用 numpy 读取支持中文路径
+        template = cv2.imdecode(np.fromfile(template_path, dtype=np.uint8), cv2.IMREAD_COLOR)
         if template is None:
             self.shop_log(f"无法读取模板图片: {template_path}")
+            self.shop_log(f"文件是否存在: {os.path.exists(template_path)}")
+            self.shop_log(f"文件大小: {os.path.getsize(template_path) if os.path.exists(template_path) else 'N/A'}")
             return None
         
         original_w, original_h = template.shape[1], template.shape[0]

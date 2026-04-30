@@ -36,7 +36,7 @@ Desktop.ini
 bin/
 obj/
 dist/
-build/      # 编译目录
+build/     
 out/
 config/
 output/

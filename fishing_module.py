@@ -764,9 +764,12 @@ class FishingModule:
             self.fishing_log(f"模板图片不存在: {template_path}")
             return None
         
-        template = cv2.imread(template_path, cv2.IMREAD_COLOR)
+        # 使用 numpy 读取支持中文路径
+        template = cv2.imdecode(np.fromfile(template_path, dtype=np.uint8), cv2.IMREAD_COLOR)
         if template is None:
             self.fishing_log(f"无法读取模板图片: {template_path}")
+            self.fishing_log(f"文件是否存在: {os.path.exists(template_path)}")
+            self.fishing_log(f"文件大小: {os.path.getsize(template_path) if os.path.exists(template_path) else 'N/A'}")
             return None
         
         # 获取当前窗口分辨率

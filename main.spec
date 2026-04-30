@@ -5,7 +5,7 @@ import os
 block_cipher = None
 
 datas = [
-    ("images", "images"),
+    (os.path.abspath("images"), "images"),
 ]
 
 a = Analysis(
