@@ -104,7 +104,7 @@
 
    ![](https://gitee.com/xfwl310/hotta-studio-script/raw/main/images/tips/fishing_module_1.png)
    
-   - 调整好HSV颜色参数（以及测试过调好了，不喜欢可使用测试按钮获取参考值）
+   - 调整好HSV颜色参数（已经测试过调好了，不喜欢可使用测试按钮获取参考值，然后自己调整）
    
 2. **GUI界面设置**：
    - **选择目标窗口**：从下拉列表中选择游戏窗口
