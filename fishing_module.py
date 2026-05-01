@@ -690,8 +690,9 @@ class FishingModule:
         
         if not file_path:
             return
-        
-        image = cv2.imread(file_path)
+
+        # 使用 numpy 读取支持中文路径
+        image = cv2.imdecode(np.fromfile(file_path, dtype=np.uint8), cv2.IMREAD_COLOR)
         if image is None:
             messagebox.showerror("错误", "无法读取图片文件")
             return

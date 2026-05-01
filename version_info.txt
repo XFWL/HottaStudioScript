@@ -1,6 +1,6 @@
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 2, 0, 3),
+    filevers=(1, 2, 0, 4),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -16,11 +16,11 @@ VSVersionInfo(
           [
             StringStruct(u'CompanyName', u'XFWL'),
             StringStruct(u'FileDescription', u'异环小工具 - 自动钓鱼和店长特供'),
-            StringStruct(u'FileVersion', u'1.2.0.3'),
+            StringStruct(u'FileVersion', u'1.2.0.4'),
             StringStruct(u'InternalName', u'异环小工具'),
             StringStruct(u'OriginalFilename', u'异环小工具.exe'),
             StringStruct(u'ProductName', u'异环小工具'),
-            StringStruct(u'ProductVersion', u'1.2.0.3')
+            StringStruct(u'ProductVersion', u'1.2.0.4')
           ]
         )
       ]
