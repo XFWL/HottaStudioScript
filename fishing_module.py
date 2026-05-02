@@ -260,12 +260,18 @@ class FishingModule:
             time.sleep(delay)
         
         start_time = time.time()
+        last_log_time = start_time - 1
         
         while not self.main_app.cancelled:
-            elapsed_time = time.time() - start_time
+            current_time = time.time()
+            elapsed_time = current_time - start_time
             if elapsed_time > timeout:
                 self.fishing_log(f"下杆阶段超时({timeout}秒)，退出")
                 return "timeout"
+            
+            if current_time - last_log_time >= 1:
+                self.fishing_log(f"下杆阶段进行中，已等待 {int(elapsed_time)}秒")
+                last_log_time = current_time
             
             window.activate()
             time.sleep(0.02)
@@ -282,7 +288,6 @@ class FishingModule:
                 return "success"
             
             pyautogui.press('f')
-            self.fishing_log(f"按F键下杆，已尝试 {int(elapsed_time)}秒")
             time.sleep(interval)
         
         return "cancelled"
@@ -297,6 +302,9 @@ class FishingModule:
         
         start_time = time.time()
         timeout_triggered = False
+        current_key = None
+        last_log_time = start_time
+        first_detection = True
         
         while not self.main_app.cancelled:
             elapsed_time = time.time() - start_time
@@ -310,6 +318,7 @@ class FishingModule:
                 screenshot = self.main_app.capture_window(window)
                 
                 if screenshot is None:
+                    time.sleep(0.02)
                     continue
                 
                 fish_success, fish_path, fish_center, fish_bounds = self.detect_hsv_and_capture(
@@ -323,13 +332,24 @@ class FishingModule:
                     50, "rod", detect_percent, False)
                 
                 if not fish_success or not rod_success:
+                    if current_key:
+                        keyboard.release(current_key)
+                        current_key = None
                     if not fish_success and not rod_success:
-                        self.fishing_log("鱼和鱼竿均未找到，钓鱼完成")
+                        self.fishing_log("鱼和鱼竿均未找到")
                     elif not fish_success:
-                        self.fishing_log("鱼未找到，钓鱼完成")
+                        self.fishing_log("鱼未找到")
                     else:
-                        self.fishing_log("鱼竿未找到，钓鱼完成")
-                    return ("timeout" if timeout_triggered else "finished", timeout_triggered)
+                        self.fishing_log("鱼竿未找到")
+                    
+                    if first_detection:
+                        self.fishing_log("钓鱼阶段失败：首次检测未找到目标")
+                        return (None, timeout_triggered)
+                    else:
+                        self.fishing_log("钓鱼阶段结束")
+                        return ("finished", timeout_triggered)
+                
+                first_detection = False
                 
                 if fish_center and rod_center and fish_bounds:
                     fish_min_x, fish_min_y, fish_max_x, fish_max_y = fish_bounds
@@ -338,36 +358,54 @@ class FishingModule:
                     fish_width = fish_max_x - fish_min_x
                     offset = rod_x - fish_center_x
                     
-                    self.fishing_log(f"鱼:[{fish_min_x}-{fish_max_x}] (宽:{fish_width}px), 中心:{fish_center_x} | 鱼竿:{rod_x} | 偏移:{offset}")
-                    
                     threshold = max(8, fish_width // 6)
                     
-                    if abs(offset) > threshold:
-                        distance = abs(offset)
-                        press_time = distance * (key_press_time_per_px / 1000.0)
-                        press_time = max(press_time, 0.04)
-                        # press_time = min(press_time, 0.25)
-                        
-                        if offset < 0:
-                            keyboard.press('d')
-                            time.sleep(press_time)
-                            keyboard.release('d')
-                            self.fishing_log(f"按D向右 (鱼中心左{abs(offset)}px, 阈值:{threshold}px, 按{press_time:.3f}s)")
+                    action = ""
+                    position_status = ""
+                    
+                    if abs(offset) <= threshold:
+                        if current_key:
+                            keyboard.release(current_key)
+                            action = f"释放{current_key.upper()}键"
+                            current_key = None
                         else:
-                            keyboard.press('a')
-                            time.sleep(press_time)
-                            keyboard.release('a')
-                            self.fishing_log(f"按A向左 (鱼中心右{abs(offset)}px, 阈值:{threshold}px, 按{press_time:.3f}s)")
-                        
-                        time.sleep(0.08)
-                    else:
+                            action = "无操作"
+                        position_status = f"位置已到达，偏移:{offset}px"
                         time.sleep(0.04)
+                    else:
+                        if offset < 0:
+                            target_key = 'd'
+                        else:
+                            target_key = 'a'
+                        
+                        if current_key != target_key:
+                            if current_key:
+                                keyboard.release(current_key)
+                                action = f"释放{current_key.upper()}键 → 切换方向 → 按住{target_key.upper()}键"
+                            else:
+                                action = f"按住{target_key.upper()}键"
+                            keyboard.press(target_key)
+                            current_key = target_key
+                        else:
+                            action = f"保持按住{target_key.upper()}键"
+                        position_status = f"位置偏移:{offset}px"
+                        time.sleep(0.04)
+                    
+                    if time.time() - last_log_time >= 1:
+                        self.fishing_log(f"【鱼中心:{fish_center_x}】|【鱼竿中心:{rod_x}】|【{action}】|【{position_status}】")
+                        last_log_time = time.time()
                         
             except Exception as e:
+                if current_key:
+                    keyboard.release(current_key)
+                    current_key = None
                 self.fishing_log(f"钓鱼阶段错误: {str(e)}")
                 self.fishing_log("钓鱼阶段异常，终止操作")
                 return (None, timeout_triggered)
         
+        if current_key:
+            keyboard.release(current_key)
+            current_key = None
         return ("cancelled", timeout_triggered)
     
     def phase_cleanup(self, window, fish_hsv, detect_percent, delay, timeout_triggered=False):
@@ -483,9 +521,11 @@ class FishingModule:
                 )
                 if result == "timeout":
                     self.fishing_log("下杆阶段超时，终止操作")
+                    self.main_app.root.after(0, lambda: messagebox.showerror("错误", "下杆阶段超时"))
                     break
                 elif result != "success":
                     self.fishing_log("下杆阶段失败，终止操作")
+                    self.main_app.root.after(0, lambda: messagebox.showerror("错误", "下杆阶段失败：未找到目标"))
                     break
             
             # 钓鱼阶段
@@ -500,6 +540,7 @@ class FishingModule:
                     break
                 elif result is None:
                     self.fishing_log("钓鱼阶段失败，终止操作")
+                    self.main_app.root.after(0, lambda: messagebox.showerror("错误", "钓鱼阶段失败"))
                     break
             
             # 收尾阶段
@@ -509,9 +550,6 @@ class FishingModule:
                     self.phase_cleanup_delay.get(),
                     timeout_triggered
                 )
-                if result == "failed":
-                    self.fishing_log("收尾阶段失败，终止操作")
-                    break
             
             # 出售渔获
             fishing_count_since_sell += 1
@@ -522,6 +560,7 @@ class FishingModule:
                     fishing_count_since_sell = 0
                 else:
                     self.fishing_log("出售渔获失败，终止操作")
+                    self.main_app.root.after(0, lambda: messagebox.showerror("错误", "出售渔获失败"))
                     fishing_count_since_sell = 0
                     break
             
@@ -534,6 +573,7 @@ class FishingModule:
                     fishing_count_since_buy = 0
                 else:
                     self.fishing_log("补充鱼饵失败，终止操作")
+                    self.main_app.root.after(0, lambda: messagebox.showerror("错误", "补充鱼饵失败"))
                     fishing_count_since_buy = 0
                     break
             
@@ -560,7 +600,9 @@ class FishingModule:
             return
         
         def thread_func():
-            self.buy_bait(window)
+            result = self.buy_bait(window)
+            if not result:
+                self.main_app.root.after(0, lambda: messagebox.showerror("错误", "补充鱼饵失败"))
         
         thread = threading.Thread(target=thread_func)
         thread.start()
@@ -578,18 +620,28 @@ class FishingModule:
             messagebox.showerror("错误", f"找不到窗口: {window_title}")
             return
         
-        fish_hsv = [
-            self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get(),
-            self.fish_h_high.get(), self.fish_s_high.get(), self.fish_v_high.get()
-        ]
+        def thread_func():
+            fish_hsv = [
+                self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get(),
+                self.fish_h_high.get(), self.fish_h_high.get(), self.fish_v_high.get()
+            ]
+            
+            result = self.phase_drop_line(
+                window, fish_hsv, self.detect_area_percent.get(),
+                self.phase_drop_line_delay.get(),
+                self.phase_drop_line_interval.get(),
+                self.phase_drop_line_timeout.get()
+            )
+            
+            self.fishing_log("------------------------------------------------------")
+            
+            if result == "timeout":
+                self.main_app.root.after(0, lambda: messagebox.showerror("错误", "下杆阶段超时"))
+            elif result != "success":
+                self.main_app.root.after(0, lambda: messagebox.showerror("错误", "下杆阶段失败：未找到目标"))
         
-        self.phase_drop_line(
-            window, fish_hsv, self.detect_area_percent.get(),
-            self.phase_drop_line_delay.get(),
-            self.phase_drop_line_interval.get(),
-            self.phase_drop_line_timeout.get()
-        )
-        self.fishing_log("------------------------------------------------------")
+        thread = threading.Thread(target=thread_func)
+        thread.start()
     
     def execute_fishing_alone(self):
         self.main_app.cancelled = False
@@ -611,15 +663,25 @@ class FishingModule:
         
         rod_hsv = [
             self.rod_h_low.get(), self.rod_s_low.get(), self.rod_v_low.get(),
-            self.rod_h_high.get(), self.rod_s_high.get(), self.rod_v_high.get()
+            self.rod_h_high.get(), self.rod_h_high.get(), self.rod_v_high.get()
         ]
         
-        self.phase_fishing(
-            window, fish_hsv, rod_hsv, self.detect_area_percent.get(),
-            self.key_press_time_per_px.get(),
-            self.phase_fishing_delay.get()
-        )
-        self.fishing_log("------------------------------------------------------")
+        def thread_func():
+            result, timeout_triggered = self.phase_fishing(
+                window, fish_hsv, rod_hsv, self.detect_area_percent.get(),
+                self.key_press_time_per_px.get(),
+                self.phase_fishing_delay.get()
+            )
+            
+            self.fishing_log("------------------------------------------------------")
+            
+            if result == "cancelled":
+                pass
+            elif result is None:
+                self.main_app.root.after(0, lambda: messagebox.showerror("错误", "钓鱼阶段失败"))
+        
+        thread = threading.Thread(target=thread_func)
+        thread.start()
     
     def execute_cleanup_alone(self):
         self.main_app.cancelled = False
@@ -634,16 +696,21 @@ class FishingModule:
             messagebox.showerror("错误", f"找不到窗口: {window_title}")
             return
         
-        fish_hsv = [
-            self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get(),
-            self.fish_h_high.get(), self.fish_s_high.get(), self.fish_v_high.get()
-        ]
+        def thread_func():
+            fish_hsv = [
+                self.fish_h_low.get(), self.fish_s_low.get(), self.fish_v_low.get(),
+                self.fish_h_high.get(), self.fish_h_high.get(), self.fish_v_high.get()
+            ]
+            
+            self.phase_cleanup(
+                window, fish_hsv, self.detect_area_percent.get(),
+                self.phase_cleanup_delay.get()
+            )
+            
+            self.fishing_log("------------------------------------------------------")
         
-        self.phase_cleanup(
-            window, fish_hsv, self.detect_area_percent.get(),
-            self.phase_cleanup_delay.get()
-        )
-        self.fishing_log("------------------------------------------------------")
+        thread = threading.Thread(target=thread_func)
+        thread.start()
     
     def test_capture_region(self):
         window_title = self.main_app.window_var.get()
@@ -1123,8 +1190,10 @@ class FishingModule:
             return
         
         def thread_func():
-            self.sell_catch(window)
-
+            result = self.sell_catch(window)
+            if not result:
+                self.main_app.root.after(0, lambda: messagebox.showerror("错误", "出售渔获失败"))
+        
         thread = threading.Thread(target=thread_func)
         thread.start()
 
