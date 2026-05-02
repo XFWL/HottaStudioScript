@@ -76,7 +76,6 @@ class FishingModule:
 
         ttk.Label(fishing_content_frame, text="钓鱼阶段设置", font=("SimHei", 10, "bold"), background="#f0f0f0").pack(anchor=tk.NW, pady=3)
 
-        self.key_press_time_per_px = tk.IntVar(value=4)
         self.phase_drop_line_enabled = tk.BooleanVar(value=True)
         self.phase_fishing_enabled = tk.BooleanVar(value=True)
         self.phase_cleanup_enabled = tk.BooleanVar(value=True)
@@ -113,9 +112,6 @@ class FishingModule:
         ttk.Label(fishing_phase_frame, text="启动延迟").pack(side=tk.LEFT, padx=5)
         ttk.Entry(fishing_phase_frame, textvariable=self.phase_fishing_delay, width=6).pack(side=tk.LEFT, padx=2)
         ttk.Label(fishing_phase_frame, text="秒").pack(side=tk.LEFT, padx=2)
-        ttk.Label(fishing_phase_frame, text="按键时间设置每1px增加").pack(side=tk.LEFT, padx=5)
-        ttk.Entry(fishing_phase_frame, textvariable=self.key_press_time_per_px, width=5).pack(side=tk.LEFT, padx=2)
-        ttk.Label(fishing_phase_frame, text="ms").pack(side=tk.LEFT, padx=2)
         ttk.Button(fishing_phase_frame, text="单独执行", command=self.execute_fishing_alone).pack(side=tk.LEFT, padx=10)
 
         timeout_info_frame = ttk.Frame(fishing_content_frame)
@@ -292,7 +288,7 @@ class FishingModule:
         
         return "cancelled"
     
-    def phase_fishing(self, window, fish_hsv, rod_hsv, detect_percent, key_press_time_per_px, delay):
+    def phase_fishing(self, window, fish_hsv, rod_hsv, detect_percent, delay):
         self.fishing_log("=== 开始钓鱼阶段 ===")
         self.fishing_log(f"启动延迟: {delay}秒")
         
@@ -519,7 +515,12 @@ class FishingModule:
                     self.phase_drop_line_interval.get(),
                     self.phase_drop_line_timeout.get()
                 )
-                if result == "timeout":
+                if result == "cancelled":
+                    self.fishing_log("下杆阶段被取消")
+                    self.main_app.cancelled = False
+                    self.main_app.root.after(0, lambda: messagebox.showinfo("操作取消", "钓鱼操作已取消"))
+                    break
+                elif result == "timeout":
                     self.fishing_log("下杆阶段超时，终止操作")
                     self.main_app.root.after(0, lambda: messagebox.showerror("错误", "下杆阶段超时"))
                     break
@@ -532,16 +533,19 @@ class FishingModule:
             if self.phase_fishing_enabled.get():
                 result, timeout_triggered = self.phase_fishing(
                     window, fish_hsv, rod_hsv, detect_percent,
-                    self.key_press_time_per_px.get(),
                     self.phase_fishing_delay.get()
                 )
-                if result == "cancelled":
-                    self.fishing_log("钓鱼阶段被取消")
-                    break
-                elif result is None:
+                if result is None:
                     self.fishing_log("钓鱼阶段失败，终止操作")
                     self.main_app.root.after(0, lambda: messagebox.showerror("错误", "钓鱼阶段失败"))
                     break
+                elif result == "cancelled":
+                    self.fishing_log("钓鱼阶段被取消")
+                    self.main_app.cancelled = False
+                    self.main_app.root.after(0, lambda: messagebox.showinfo("操作取消", "钓鱼操作已取消"))
+                    break
+                elif result == "finished":
+                    pass
             
             # 收尾阶段
             if self.phase_cleanup_enabled.get():
@@ -555,7 +559,13 @@ class FishingModule:
             fishing_count_since_sell += 1
             if sell_catch_enabled and fishing_count_since_sell >= sell_catch_interval:
                 self.fishing_log(f"已完成 {fishing_count_since_sell} 次钓鱼，开始出售渔获")
-                if self.sell_catch(window):
+                result = self.sell_catch(window)
+                if result is None:
+                    self.fishing_log("出售渔获被取消")
+                    self.main_app.cancelled = False
+                    self.main_app.root.after(0, lambda: messagebox.showinfo("操作取消", "出售渔获已取消"))
+                    break
+                elif result:
                     self.fishing_log("出售渔获完成，重置计数")
                     fishing_count_since_sell = 0
                 else:
@@ -568,7 +578,13 @@ class FishingModule:
             fishing_count_since_buy += 1
             if buy_bait_enabled and fishing_count_since_buy >= buy_bait_interval:
                 self.fishing_log(f"已完成 {fishing_count_since_buy} 次钓鱼，开始补充鱼饵")
-                if self.buy_bait(window):
+                result = self.buy_bait(window)
+                if result is None:
+                    self.fishing_log("补充鱼饵被取消")
+                    self.main_app.cancelled = False
+                    self.main_app.root.after(0, lambda: messagebox.showinfo("操作取消", "补充鱼饵已取消"))
+                    break
+                elif result:
                     self.fishing_log("补充鱼饵完成，重置计数")
                     fishing_count_since_buy = 0
                 else:
@@ -581,10 +597,6 @@ class FishingModule:
                 break
         
         self.fishing_log("钓鱼执行结束")
-        
-        # 如果是F12取消导致的结束，弹出提示
-        if self.main_app.cancelled:
-            messagebox.showinfo("操作取消", "钓鱼操作已取消")
     
     def execute_buy_bait_alone(self):
         self.main_app.cancelled = False
@@ -601,7 +613,9 @@ class FishingModule:
         
         def thread_func():
             result = self.buy_bait(window)
-            if not result:
+            if result is None:
+                self.main_app.root.after(0, lambda: messagebox.showinfo("操作取消", "补充鱼饵已取消"))
+            elif not result:
                 self.main_app.root.after(0, lambda: messagebox.showerror("错误", "补充鱼饵失败"))
         
         thread = threading.Thread(target=thread_func)
@@ -635,7 +649,9 @@ class FishingModule:
             
             self.fishing_log("------------------------------------------------------")
             
-            if result == "timeout":
+            if result == "cancelled":
+                self.main_app.root.after(0, lambda: messagebox.showinfo("操作取消", "下杆操作已取消"))
+            elif result == "timeout":
                 self.main_app.root.after(0, lambda: messagebox.showerror("错误", "下杆阶段超时"))
             elif result != "success":
                 self.main_app.root.after(0, lambda: messagebox.showerror("错误", "下杆阶段失败：未找到目标"))
@@ -669,14 +685,13 @@ class FishingModule:
         def thread_func():
             result, timeout_triggered = self.phase_fishing(
                 window, fish_hsv, rod_hsv, self.detect_area_percent.get(),
-                self.key_press_time_per_px.get(),
                 self.phase_fishing_delay.get()
             )
             
             self.fishing_log("------------------------------------------------------")
             
             if result == "cancelled":
-                pass
+                self.main_app.root.after(0, lambda: messagebox.showinfo("操作取消", "钓鱼操作已取消"))
             elif result is None:
                 self.main_app.root.after(0, lambda: messagebox.showerror("错误", "钓鱼阶段失败"))
         
@@ -874,7 +889,7 @@ class FishingModule:
         saved_pos1 = None
         try:
             if self.main_app.cancelled:
-                return False
+                return None
             
             self.fishing_log("=== 开始补充鱼饵 ===")
             
@@ -886,7 +901,7 @@ class FishingModule:
             time.sleep(1)
             
             if self.main_app.cancelled:
-                return False
+                return None
             
             # 2. 识别image2-1-1.png并点击（最多重试4次）
             pos1 = None
@@ -912,13 +927,15 @@ class FishingModule:
                     time.sleep(1)
             
             if pos1 is None:
+                if self.main_app.cancelled:
+                    return None
                 self.fishing_log("未找到image2-1-1.png，达到重试上限")
                 return False
             
             time.sleep(1)
             
             if self.main_app.cancelled:
-                return False
+                return None
             
             # 3. 识别image2-1-2.png并保存坐标（最多重试4次）
             pos2 = None
@@ -951,13 +968,15 @@ class FishingModule:
                     time.sleep(1)
             
             if pos2 is None:
+                if self.main_app.cancelled:
+                    return None
                 self.fishing_log("未找到image2-1-2.png，达到重试上限")
                 return False
             
             time.sleep(1)
             
             if self.main_app.cancelled:
-                return False
+                return None
             
             # 4. 识别image2-2.png并点击（最多重试4次）
             pos3 = None
@@ -983,14 +1002,16 @@ class FishingModule:
                     time.sleep(1)
             
             if pos3 is None:
+                if self.main_app.cancelled:
+                    return None
                 self.fishing_log("未找到image2-2.png，达到重试上限")
                 return False
             
             time.sleep(1)
-            
+
             if self.main_app.cancelled:
-                return False
-            
+                return None
+
             # 5. 识别image2-3.png并点击（失败则跳过）
             screenshot = self.main_app.capture_window(window)
             if screenshot is not None:
@@ -1040,7 +1061,7 @@ class FishingModule:
         saved_pos1 = None
         try:
             if self.main_app.cancelled:
-                return False
+                return None
             
             self.fishing_log("=== 开始出售渔获 ===")
             
@@ -1050,10 +1071,10 @@ class FishingModule:
             pyautogui.press('q')
             self.fishing_log("按下Q键")
             time.sleep(1)
-            
+
             if self.main_app.cancelled:
-                return False
-            
+                return None
+
             # 2. 识别image1-1.png并点击，保存坐标（最多重试4次）
             pos1 = None
             retry_count = 0
@@ -1079,14 +1100,16 @@ class FishingModule:
                     time.sleep(1)
             
             if pos1 is None:
+                if self.main_app.cancelled:
+                    return None
                 self.fishing_log("未找到image1-1.png，达到重试上限")
                 return False
             
             time.sleep(1)
-            
+
             if self.main_app.cancelled:
-                return False
-            
+                return None
+
             # 3. 识别image1-2.png并点击（最多重试4次）
             pos2 = None
             retry_count = 0
@@ -1111,14 +1134,16 @@ class FishingModule:
                     time.sleep(1)
             
             if pos2 is None:
+                if self.main_app.cancelled:
+                    return None
                 self.fishing_log("未找到image1-2.png，达到重试上限")
                 return False
             
             time.sleep(1)
-            
+
             if self.main_app.cancelled:
-                return False
-            
+                return None
+
             # 4. 识别image1-3.png并点击（最多重试4次）
             pos3 = None
             retry_count = 0
@@ -1143,6 +1168,8 @@ class FishingModule:
                     time.sleep(1)
             
             if pos3 is None:
+                if self.main_app.cancelled:
+                    return None
                 self.fishing_log("未找到image1-3.png，达到重试上限")
                 return False
             
@@ -1191,7 +1218,9 @@ class FishingModule:
         
         def thread_func():
             result = self.sell_catch(window)
-            if not result:
+            if result is None:
+                self.main_app.root.after(0, lambda: messagebox.showinfo("操作取消", "出售渔获已取消"))
+            elif not result:
                 self.main_app.root.after(0, lambda: messagebox.showerror("错误", "出售渔获失败"))
         
         thread = threading.Thread(target=thread_func)
@@ -1204,7 +1233,6 @@ class FishingModule:
                         self.fish_h_high.get(), self.fish_s_high.get(), self.fish_v_high.get()],
             'rod_hsv': [self.rod_h_low.get(), self.rod_s_low.get(), self.rod_v_low.get(),
                        self.rod_h_high.get(), self.rod_s_high.get(), self.rod_v_high.get()],
-            'key_press_time_per_px': self.key_press_time_per_px.get(),
             'phase_drop_line_enabled': self.phase_drop_line_enabled.get(),
             'phase_fishing_enabled': self.phase_fishing_enabled.get(),
             'phase_cleanup_enabled': self.phase_cleanup_enabled.get(),
@@ -1243,7 +1271,6 @@ class FishingModule:
             self.rod_h_high.set(hsv[3])
             self.rod_s_high.set(hsv[4])
             self.rod_h_high.set(hsv[5])
-        self.key_press_time_per_px.set(settings.get('key_press_time_per_px', 4))
         self.phase_drop_line_enabled.set(settings.get('phase_drop_line_enabled', True))
         self.phase_fishing_enabled.set(settings.get('phase_fishing_enabled', True))
         self.phase_cleanup_enabled.set(settings.get('phase_cleanup_enabled', True))
