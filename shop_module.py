@@ -156,54 +156,103 @@ class ShopModule:
     def execute_operations(self, window, execution_type):
         window.activate()
         time.sleep(0.5)
+        cancelled = False
         
         if execution_type == "step1":
-            self.step1(window)
+            result = self.step1(window)
+            if result is False:
+                messagebox.showerror("错误", "第一步操作失败：未找到目标图片")
+            elif result is None:
+                cancelled = True
         elif execution_type == "step2":
-            self.step2(window)
+            result = self.step2(window)
+            if result is False:
+                messagebox.showerror("错误", "第二步操作失败：未找到目标图片")
+            elif result is None:
+                cancelled = True
         elif execution_type == "step3":
-            self.step3(window)
+            result = self.step3(window)
+            if result is False:
+                messagebox.showerror("错误", "第三步操作失败：未找到目标图片")
+            elif result is None:
+                cancelled = True
         elif execution_type == "step4":
-            self.step4(window)
+            result = self.step4(window)
+            if result is False:
+                messagebox.showerror("错误", "第四步操作失败：未找到目标图片")
+            elif result is None:
+                cancelled = True
         elif execution_type == "all":
             loop_mode = self.loop_var.get()
             if loop_mode == "once":
-                self.execute_all_steps(window)
+                result = self.execute_all_steps(window)
+                if result is False:
+                    return
+                elif result is None:
+                    cancelled = True
             elif loop_mode == "custom":
                 count = self.loop_count.get()
                 for i in range(count):
                     if self.main_app.cancelled:
                         break
                     self.shop_log(f"=== 第 {i+1}/{count} 轮 ===")
-                    self.execute_all_steps(window)
+                    result = self.execute_all_steps(window)
+                    if result is False:
+                        break
+                    elif result is None:
+                        cancelled = True
+                        break
             elif loop_mode == "infinite":
                 count = 1
                 while not self.main_app.cancelled:
                     self.shop_log(f"=== 第 {count} 轮 ===")
-                    self.execute_all_steps(window)
+                    result = self.execute_all_steps(window)
+                    if result is False:
+                        break
+                    elif result is None:
+                        cancelled = True
+                        break
                     count += 1
+                if result is False:
+                    return
+            cancelled = self.main_app.cancelled
         
-        # 如果是F12取消导致的结束，弹出提示
-        if self.main_app.cancelled:
+        if cancelled:
             messagebox.showinfo("操作取消", "店长特供操作已取消")
     
     def execute_all_steps(self, window):
         if self.main_app.cancelled:
-            return
+            return None
         
-        self.step1(window)
-        if self.main_app.cancelled:
-            return
+        result = self.step1(window)
+        if result is False:
+            messagebox.showerror("错误", "第一步操作失败：未找到目标图片")
+            return False
+        if result is None:
+            return None
         
-        self.step2(window)
-        if self.main_app.cancelled:
-            return
+        result = self.step2(window)
+        if result is False:
+            messagebox.showerror("错误", "第二步操作失败：未找到目标图片")
+            return False
+        if result is None:
+            return None
         
-        self.step3(window)
-        if self.main_app.cancelled:
-            return
+        result = self.step3(window)
+        if result is False:
+            messagebox.showerror("错误", "第三步操作失败：未找到目标图片")
+            return False
+        if result is None:
+            return None
         
-        self.step4(window)
+        result = self.step4(window)
+        if result is False:
+            messagebox.showerror("错误", "第四步操作失败：未找到目标图片")
+            return False
+        if result is None:
+            return None
+        
+        return True
     
     def find_image_on_screen(self, window, image_path, threshold=0.7):
         screenshot = self.main_app.capture_window(window)
@@ -264,30 +313,29 @@ class ShopModule:
             self.shop_log(f"找到目标图片: {image_path}")
             for i in range(action_count):
                 if self.main_app.cancelled:
-                    break
+                    return None
                 pyautogui.press('f')
                 time.sleep(0.5)
                 self.shop_log(f"执行F键操作 {i+1}/{action_count}")
+            return True
         else:
             self.shop_log(f"未找到目标图片: {image_path}")
             if self.backup_enabled.get():
                 self.shop_log("重试功能已启用，尝试重试")
                 for i in range(self.backup_count.get()):
                     if self.main_app.cancelled:
-                        break
+                        return None
                     time.sleep(2)
                     pos = self.find_image_on_screen(window, image_path)
                     if pos:
                         for j in range(action_count):
                             if self.main_app.cancelled:
-                                break
+                                return None
                             pyautogui.press('f')
                             time.sleep(0.5)
                             self.shop_log(f"重试执行F键操作 {j+1}/{action_count}")
-                        return
-            self.main_app.cancelled = True
-            self.shop_log("取消后续操作")
-            messagebox.showerror("错误", f"第一步操作失败：未找到目标图片 {image_path}")
+                        return True
+            return False
     
     def step2(self, window):
         self.shop_log("=== 开始第二步操作 ===")
@@ -301,31 +349,30 @@ class ShopModule:
             window_left, window_top = window.left, window.top
             for i in range(click_count):
                 if self.main_app.cancelled:
-                    break
+                    return None
                 self.smooth_move_click(window_left + pos[0], window_top + pos[1])
                 time.sleep(0.5)
                 self.shop_log(f"执行点击操作 {i+1}/{click_count}")
+            return True
         else:
             self.shop_log(f"未找到目标图片: {image_path}")
             if self.backup_enabled.get():
                 self.shop_log("重试功能已启用，尝试重试")
                 for i in range(self.backup_count.get()):
                     if self.main_app.cancelled:
-                        break
+                        return None
                     time.sleep(2)
                     pos = self.find_image_on_screen(window, image_path)
                     if pos:
                         window_left, window_top = window.left, window.top
                         for j in range(click_count):
                             if self.main_app.cancelled:
-                                break
+                                return None
                             self.smooth_move_click(window_left + pos[0], window_top + pos[1])
                             time.sleep(0.5)
                             self.shop_log(f"重试执行点击操作 {j+1}/{click_count}")
-                        return
-            self.main_app.cancelled = True
-            self.shop_log("取消后续操作")
-            messagebox.showerror("错误", f"第二步操作失败：未找到目标图片 {image_path}")
+                        return True
+            return False
     
     def step3(self, window):
         self.shop_log("=== 开始第三步操作 ===")
@@ -345,14 +392,18 @@ class ShopModule:
                 self.smooth_move_click(window_left + pos[0], window_top + pos[1], duration=0.2)
                 time.sleep(0.1)
             
+            if self.main_app.cancelled:
+                return None
+            
             self.shop_log(f"持续点击操作完成，时长: {hold_time}秒")
+            return True
         else:
             self.shop_log(f"未找到目标图片: {image_path}")
             if self.backup_enabled.get():
                 self.shop_log("重试功能已启用，尝试重试")
                 for i in range(self.backup_count.get()):
                     if self.main_app.cancelled:
-                        break
+                        return None
                     time.sleep(2)
                     pos = self.find_image_on_screen(window, image_path)
                     if pos:
@@ -364,11 +415,12 @@ class ShopModule:
                             self.smooth_move_click(window_left + pos[0], window_top + pos[1], duration=0.2)
                             time.sleep(0.1)
                         
+                        if self.main_app.cancelled:
+                            return None
+                        
                         self.shop_log(f"重试持续点击操作完成，时长: {hold_time}秒")
-                        return
-            self.main_app.cancelled = True
-            self.shop_log("取消后续操作")
-            messagebox.showerror("错误", f"第三步操作失败：未找到目标图片 {image_path}")
+                        return True
+            return False
     
     def step4(self, window):
         self.shop_log("=== 开始第四步操作 ===")
@@ -383,31 +435,30 @@ class ShopModule:
             window_left, window_top = window.left, window.top
             for i in range(click_count):
                 if self.main_app.cancelled:
-                    break
+                    return None
                 self.smooth_move_click(window_left + pos[0], window_top + pos[1])
                 time.sleep(delay)
                 self.shop_log(f"执行点击操作 {i+1}/{click_count}")
+            return True
         else:
             self.shop_log(f"未找到目标图片: {image_path}")
             if self.backup_enabled.get():
                 self.shop_log("重试功能已启用，尝试重试")
                 for i in range(self.backup_count.get()):
                     if self.main_app.cancelled:
-                        break
+                        return None
                     time.sleep(2)
                     pos = self.find_image_on_screen(window, image_path)
                     if pos:
                         window_left, window_top = window.left, window.top
                         for j in range(click_count):
                             if self.main_app.cancelled:
-                                break
+                                return None
                             self.smooth_move_click(window_left + pos[0], window_top + pos[1])
                             time.sleep(delay)
                             self.shop_log(f"重试执行点击操作 {j+1}/{click_count}")
-                        return
-            self.main_app.cancelled = True
-            self.shop_log("取消后续操作")
-            messagebox.showerror("错误", f"第四步操作失败：未找到目标图片 {image_path}")
+                        return True
+            return False
 
     def get_settings(self):
         """获取当前设置"""

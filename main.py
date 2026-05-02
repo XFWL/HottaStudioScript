@@ -117,6 +117,13 @@ class MainApplication:
         self.notebook = ttk.Notebook(main_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True, pady=10)
         
+        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
+        
+        self.tab_heights = {
+            "店长特供": 850,
+            "钓鱼": 1050
+        }
+        
         from shop_module import ShopModule
         from fishing_module import FishingModule
         
@@ -124,6 +131,11 @@ class MainApplication:
         self.fishing_module = FishingModule(self, self.notebook)
         
         self.load_all_settings()
+    
+    def on_tab_changed(self, event):
+        tab_name = self.notebook.tab(self.notebook.select(), "text")
+        if tab_name in self.tab_heights:
+            self.root.geometry(f"900x{self.tab_heights[tab_name]}")
     
     def setup_hotkeys(self):
         keyboard.add_hotkey('f12', self.cancel_operation)
