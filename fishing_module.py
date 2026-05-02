@@ -355,10 +355,11 @@ class FishingModule:
                     offset = rod_x - fish_center_x
                     
                     threshold = max(8, fish_width // 6)
-                    
+                    hysteresis = threshold * 1.5
+
                     action = ""
                     position_status = ""
-                    
+
                     if abs(offset) <= threshold:
                         if current_key:
                             keyboard.release(current_key)
@@ -368,12 +369,12 @@ class FishingModule:
                             action = "无操作"
                         position_status = f"位置已到达，偏移:{offset}px"
                         time.sleep(0.04)
-                    else:
+                    elif abs(offset) >= hysteresis:
                         if offset < 0:
                             target_key = 'd'
                         else:
                             target_key = 'a'
-                        
+
                         if current_key != target_key:
                             if current_key:
                                 keyboard.release(current_key)
@@ -385,6 +386,10 @@ class FishingModule:
                         else:
                             action = f"保持按住{target_key.upper()}键"
                         position_status = f"位置偏移:{offset}px"
+                        time.sleep(0.04)
+                    else:
+                        action = f"保持按住{current_key.upper() if current_key else '无'}键（滞后区间）"
+                        position_status = f"位置偏移:{offset}px（未达切换条件）"
                         time.sleep(0.04)
                     
                     if time.time() - last_log_time >= 1:
