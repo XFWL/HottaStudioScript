@@ -85,7 +85,7 @@ class FishingModule:
         self.phase_drop_line_interval = tk.IntVar(value=0.75)
         self.phase_drop_line_timeout = tk.IntVar(value=10)
         self.phase_fishing_delay = tk.DoubleVar(value=0.25)
-        self.phase_cleanup_delay = tk.DoubleVar(value=1)
+        self.phase_cleanup_delay = tk.DoubleVar(value=2)
         self.buy_bait_enabled = tk.BooleanVar(value=False)
 
         self.sell_catch_enabled = tk.BooleanVar(value=False)
@@ -1285,7 +1285,7 @@ class FishingModule:
         self.phase_drop_line_interval.set(settings.get('phase_drop_line_interval', 0.75))
         self.phase_drop_line_timeout.set(settings.get('phase_drop_line_timeout', 10))
         self.phase_fishing_delay.set(settings.get('phase_fishing_delay', 0.25))
-        self.phase_cleanup_delay.set(settings.get('phase_cleanup_delay', 1))
+        self.phase_cleanup_delay.set(settings.get('phase_cleanup_delay', 2))
         self.buy_bait_enabled.set(settings.get('buy_bait_enabled', False))
         self.buy_bait_interval.set(settings.get('buy_bait_interval', 99))
         self.buy_bait_test_mode.set(settings.get('buy_bait_test_mode', False))
