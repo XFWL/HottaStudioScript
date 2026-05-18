@@ -928,18 +928,17 @@ class FishingModule:
         # 定义基准分辨率（模板图片的原始分辨率）
         base_width, base_height = 1920, 1080
         
-        # 计算缩放比例
-        scale_x = current_width / base_width
-        scale_y = current_height / base_height
+        # 计算等比缩放比例（取最小比例，保持宽高比）
+        scale = min(current_width / base_width, current_height / base_height)
         
-        # 缩放模板（按比例缩放）
-        if scale_x != 1.0 or scale_y != 1.0:
+        # 缩放模板（等比缩放，保持宽高比）
+        if scale != 1.0:
             original_h, original_w = template.shape[:2]
-            new_w = int(original_w * scale_x)
-            new_h = int(original_h * scale_y)
+            new_w = int(original_w * scale)
+            new_h = int(original_h * scale)
             if new_w > 0 and new_h > 0:
                 template = cv2.resize(template, (new_w, new_h), interpolation=cv2.INTER_AREA)
-                self.fishing_log(f"模板 {template_name} 已缩放: {scale_x:.2f}x{scale_y:.2f}")
+                self.fishing_log(f"模板 {template_name} 已等比缩放: {scale:.2f}x")
         
         result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
